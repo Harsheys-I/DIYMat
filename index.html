@@ -138,7 +138,6 @@
         
         /* Timer Text */
         #page-timer { text-align: center; display: flex; flex-direction: column; align-items: center; }
-        /* Notice the font size is drastically reduced to 8vw so it doesn't push the buttons off screen */
         .timer-display { font-size: 8vw; font-weight: bold; margin-top: 2vh; font-family: monospace; transition: color 0.1s; }
         
         /* Penalty Controls */
@@ -152,6 +151,12 @@
         .action-btn:hover { background: #555; }
         .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; }
         .reset-btn:hover { background: #b71c1c; }
+
+        /* Dynamic Stats Blocks */
+        .stat-box { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; display: none; }
+        .stat-box.visible { display: block; }
+        .stat-title { margin-top: 0; color: #aaa; font-size: 1.1rem; margin-bottom: 5px; }
+        .stat-value { font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff; }
 
         /* Stats Table */
         table { width: 100%; text-align: left; border-collapse: collapse; font-family: monospace; font-size: 1rem; }
@@ -248,14 +253,22 @@
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 20px; margin-bottom: 30px;">
-                    <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
-                        <h3 style="margin-top: 0; color: #aaa;">Mean of Session</h3>
-                        <p id="statMean" style="font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff;">--</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
+                    <div id="boxMean" class="stat-box visible">
+                        <p class="stat-title">Session Mean</p>
+                        <p id="statMean" class="stat-value">--</p>
                     </div>
-                    <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
-                        <h3 style="margin-top: 0; color: #aaa;">Current Ao5</h3>
-                        <p id="statAo5" style="font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff;">--</p>
+                    <div id="boxAo5" class="stat-box">
+                        <p class="stat-title">Current Ao5</p>
+                        <p id="statAo5" class="stat-value">--</p>
+                    </div>
+                    <div id="boxAo12" class="stat-box">
+                        <p class="stat-title">Current Ao12</p>
+                        <p id="statAo12" class="stat-value">--</p>
+                    </div>
+                    <div id="boxAo100" class="stat-box">
+                        <p class="stat-title">Current Ao100</p>
+                        <p id="statAo100" class="stat-value">--</p>
                     </div>
                 </div>
                 
@@ -297,7 +310,7 @@
         let sessionCount = 1;
         
         // Timer Globals
-        let timerState = 'idle'; // idle, inspecting_starting, inspecting, ready, running, stopped
+        let timerState = 'idle'; // idle, inspecting_starting, inspecting, inspecting_holding, ready, running, stopped
         let startTime = 0;
         let finalTimeMs = 0;
         let timerInterval;
@@ -306,6 +319,10 @@
         let inspectStartTime = 0;
         let inspectionInterval;
         let activeInspectionPenalty = 'OK';
+        
+        // Keyboard Hold Globals
+        let spaceHoldStart = 0;
+        let holdInterval;
 
         // --- 1. SETUP LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -372,7 +389,7 @@
         document.addEventListener('keydown', (e) => {
             if (currentDevice !== 'keyboard' || e.code !== 'Space') return;
             e.preventDefault(); 
-            if (e.repeat) return; // Prevent OS keyboard repeating from spamming the timer
+            if (e.repeat) return; // Prevent OS keyboard repeating
 
             const useInspection = document.getElementById('chkInspection').checked;
 
@@ -382,23 +399,33 @@
                 if (useInspection) {
                     // Tap space to initiate 15s countdown
                     timerState = 'inspecting_starting';
-                    document.getElementById('mainTimerText').style.color = '#ff9800'; // Orange
+                    document.getElementById('mainTimerText').style.color = '#ff9800'; 
                     document.getElementById('mainTimerText').innerText = "15";
                 } else {
                     // Skip inspection, go straight to ready
                     timerState = 'ready';
-                    document.getElementById('mainTimerText').style.color = '#4CAF50'; // Green
+                    document.getElementById('mainTimerText').style.color = '#4CAF50'; 
                     activeInspectionPenalty = 'OK';
                 }
             } 
             else if (timerState === 'inspecting') {
-                // User put hands down during countdown
-                clearInterval(inspectionInterval);
-                timerState = 'ready';
-                document.getElementById('mainTimerText').style.color = '#4CAF50'; // Green
+                // User pressed space during inspection: Start the HOLD phase
+                timerState = 'inspecting_holding';
+                spaceHoldStart = Date.now();
+                document.getElementById('mainTimerText').style.color = '#ffffff'; 
+                document.getElementById('mainTimerText').innerText = '- - -';
+                
+                holdInterval = setInterval(() => {
+                    // Once held for 600ms, switch to ready
+                    if (Date.now() - spaceHoldStart > 600) {
+                        timerState = 'ready';
+                        document.getElementById('mainTimerText').style.color = '#4CAF50'; // Turns Green
+                        document.getElementById('mainTimerText').innerText = '0.000';
+                        clearInterval(holdInterval);
+                    }
+                }, 50);
             } 
             else if (timerState === 'running') {
-                // Stop solve
                 stopTimer();
             }
         });
@@ -411,8 +438,14 @@
                 // Released space after tap, start the 15s countdown
                 timerState = 'inspecting';
                 startInspection();
+            } else if (timerState === 'inspecting_holding') {
+                // Released too early during inspection (before 600ms was reached)
+                clearInterval(holdInterval);
+                timerState = 'inspecting';
             } else if (timerState === 'ready') {
                 // Lifted hands to start solve!
+                clearInterval(holdInterval); 
+                clearInterval(inspectionInterval); // Stop the inspection clock forever
                 startTimer();
             }
         });
@@ -421,22 +454,31 @@
         function startInspection() {
             inspectStartTime = Date.now();
             activeInspectionPenalty = 'OK';
-            document.getElementById('mainTimerText').style.color = '#ff9800'; // Orange Warning
+            document.getElementById('mainTimerText').style.color = '#ff9800'; 
 
             inspectionInterval = setInterval(() => {
                 let elapsed = Date.now() - inspectStartTime;
                 let remaining = 15 - Math.floor(elapsed / 1000);
 
-                if (remaining > 0) {
-                    document.getElementById('mainTimerText').innerText = remaining;
-                } else if (remaining <= 0 && remaining > -2) {
-                    document.getElementById('mainTimerText').innerText = "+2";
-                    document.getElementById('mainTimerText').style.color = '#d32f2f'; // Red
+                // Background penalty tracking (WCA rules apply even if hands are on the timer waiting to turn green)
+                if (remaining <= 0 && remaining > -2) {
                     activeInspectionPenalty = '+2';
-                } else {
-                    document.getElementById('mainTimerText').innerText = "DNF";
-                    document.getElementById('mainTimerText').style.color = '#d32f2f';
+                } else if (remaining <= -2) {
                     activeInspectionPenalty = 'DNF';
+                }
+
+                // ONLY redraw the screen if the user isn't currently touching the pads!
+                if (timerState === 'inspecting') {
+                    if (remaining > 0) {
+                        document.getElementById('mainTimerText').innerText = remaining;
+                        document.getElementById('mainTimerText').style.color = '#ff9800';
+                    } else if (remaining <= 0 && remaining > -2) {
+                        document.getElementById('mainTimerText').innerText = "+2";
+                        document.getElementById('mainTimerText').style.color = '#d32f2f';
+                    } else {
+                        document.getElementById('mainTimerText').innerText = "DNF";
+                        document.getElementById('mainTimerText').style.color = '#d32f2f';
+                    }
                 }
             }, 100);
         }
@@ -462,7 +504,7 @@
             return (ms / 1000).toFixed(3);
         }
 
-        // --- 4. DATA & PENALTY LOGIC ---
+        // --- 4. DATA, PENALTY, & AVERAGES LOGIC ---
         function saveSolve(autoPenalty = 'OK') {
             solves.push({
                 timeMs: finalTimeMs,
@@ -471,7 +513,6 @@
             });
             document.getElementById('penalty-controls').style.display = 'flex';
             
-            // Instantly apply visual penalty from inspection if it exists
             applyVisualPenalty(autoPenalty, finalTimeMs);
             updateStatsUI();
             generateScramble();
@@ -486,7 +527,6 @@
             updateStatsUI();
         }
 
-        // Helper to update the big text without making a new solve
         function applyVisualPenalty(type, rawTimeMs) {
             let displayStr = formatTime(rawTimeMs);
             document.getElementById('mainTimerText').style.color = '#ffffff';
@@ -526,6 +566,26 @@
             }
         }
 
+        function calcWCAAverage(n) {
+            if (solves.length < n) return null;
+            
+            let recentSolves = solves.slice(-n);
+            let times = recentSolves.map(s => {
+                if (s.penalty === 'DNF') return Infinity;
+                if (s.penalty === '+2') return s.timeMs + 2000;
+                return s.timeMs;
+            });
+
+            times.sort((a, b) => a - b);
+            let trimCount = Math.ceil(n * 0.05);
+            let countedTimes = times.slice(trimCount, n - trimCount);
+
+            if (countedTimes.includes(Infinity)) return 'DNF';
+
+            let sum = countedTimes.reduce((a, b) => a + b, 0);
+            return formatTime(sum / countedTimes.length);
+        }
+
         function updateStatsUI() {
             let tbody = document.getElementById('solveTableBody');
             tbody.innerHTML = '';
@@ -533,6 +593,9 @@
             if(solves.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="color: #aaa;">No solves yet</td></tr>';
                 document.getElementById('statMean').innerText = '--';
+                document.getElementById('boxAo5').classList.remove('visible');
+                document.getElementById('boxAo12').classList.remove('visible');
+                document.getElementById('boxAo100').classList.remove('visible');
                 return;
             }
 
@@ -570,6 +633,31 @@
                 document.getElementById('statMean').innerText = formatTime(sum / validTimes.length);
             } else {
                 document.getElementById('statMean').innerText = 'DNF';
+            }
+
+            let ao5 = calcWCAAverage(5);
+            let ao12 = calcWCAAverage(12);
+            let ao100 = calcWCAAverage(100);
+
+            if (ao5) {
+                document.getElementById('boxAo5').classList.add('visible');
+                document.getElementById('statAo5').innerText = ao5;
+            } else {
+                document.getElementById('boxAo5').classList.remove('visible');
+            }
+
+            if (ao12) {
+                document.getElementById('boxAo12').classList.add('visible');
+                document.getElementById('statAo12').innerText = ao12;
+            } else {
+                document.getElementById('boxAo12').classList.remove('visible');
+            }
+
+            if (ao100) {
+                document.getElementById('boxAo100').classList.add('visible');
+                document.getElementById('statAo100').innerText = ao100;
+            } else {
+                document.getElementById('boxAo100').classList.remove('visible');
             }
         }
 
