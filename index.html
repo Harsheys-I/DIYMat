@@ -33,7 +33,7 @@
         /* Main App Interface */
         #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
         
-        /* Sliding Panel - WIDENED TO 400px to fit new stats */
+        /* Sliding Panel */
         #sidePanel { position: fixed; top: 0; left: -400px; width: 400px; height: 100%; background-color: #1e1e1e; border-right: 1px solid #333; transition: left 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
         #sidePanel.open { left: 0; }
         .panel-header { padding: 20px; background: #151515; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #333; }
@@ -59,10 +59,11 @@
 
         /* Left Side: Stats Sidebar */
         .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 10px 20px 20px 20px; flex-shrink: 0; }
-        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .mini-stat-box { background: #252525; padding: 10px; border-radius: 6px; text-align: center; }
-        .stat-label { display: block; color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-        .stat-value { font-size: 1.4rem; font-weight: bold; color: #fff; }
+        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 15px 0; }
+        .mini-stat-box { background: #252525; padding: 8px 5px; border-radius: 6px; text-align: center; display: none; }
+        .mini-stat-box.visible { display: block; }
+        .stat-label { display: block; color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; color: #fff; }
 
         /* Scrollable Table Container */
         .table-container { flex-grow: 1; overflow-y: auto; background: #252525; border-radius: 6px; padding: 0; }
@@ -70,18 +71,18 @@
         .table-container::-webkit-scrollbar-track { background: #252525; }
         .table-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
         
-        /* Table Styling with Highlight Colors */
+        /* Table Styling */
         .table-container table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.95rem; text-align: right; }
         .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; }
         .table-container td { padding: 10px; border-bottom: 1px solid #333; }
-        .table-container tr:hover { background-color: #333; cursor: help; } /* Cursor indicates hoverable scramble */
+        .table-container tr:hover { background-color: #333; cursor: help; } 
         .table-container th:first-child, .table-container td:first-child { text-align: left; }
         
         /* Specific Status Colors */
         .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); } /* Blue/Cyan PB */
         .val-dnf { color: #ff5252 !important; } /* Red DNF */
         .val-plus2 { color: #ffeb3b !important; } /* Yellow +2 */
-        .val-dim { color: #888; } /* Faded text for null states (-) */
+        .val-dim { color: #888; } /* Faded text */
 
         /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
@@ -106,6 +107,10 @@
         body.focus-mode .scramble-container { display: none !important; }
         body.focus-mode .timer-area { justify-content: center; }
         body.focus-mode .timer-display { font-size: 25vw; margin-top: 0; }
+
+        /* Full Page Stats Blocks */
+        .stat-box-large { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 120px; text-align: center; display: none; }
+        .stat-box-large.visible { display: block; }
 
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
@@ -132,7 +137,7 @@
                     <h3>The Pro</h3><p>ESP32-C3 (Bluetooth)</p>
                 </div>
                 <div class="device-card" onclick="selectDevice('keyboard')">
-                    <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
+                    <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,19 22,18.11 22,17V7C22,5.89 21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
                     <h3>Keyboard</h3><p>Debug Mode (Spacebar)</p>
                 </div>
             </div>
@@ -161,10 +166,14 @@
                 <div class="stats-sidebar">
                     <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center;">Session 1</h2>
                     <div class="mini-stats-grid">
-                        <div class="mini-stat-box"><span class="stat-label">Ao5</span><span id="statAo5" class="stat-value">--</span></div>
-                        <div class="mini-stat-box"><span class="stat-label">Ao12</span><span id="statAo12" class="stat-value">--</span></div>
-                        <div class="mini-stat-box"><span class="stat-label">Ao100</span><span id="statAo100" class="stat-value">--</span></div>
-                        <div class="mini-stat-box"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
+                        <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
+                        <div id="boxBest" class="mini-stat-box visible"><span class="stat-label">Best</span><span id="statBest" class="stat-value" style="color: #00e5ff;">--</span></div>
+                        <div id="boxAo5" class="mini-stat-box"><span class="stat-label">Ao5</span><span id="statAo5" class="stat-value">--</span></div>
+                        <div id="boxBestAo5" class="mini-stat-box"><span class="stat-label">Best Ao5</span><span id="statBestAo5" class="stat-value" style="color: #00e5ff;">--</span></div>
+                        <div id="boxAo12" class="mini-stat-box"><span class="stat-label">Ao12</span><span id="statAo12" class="stat-value">--</span></div>
+                        <div id="boxBestAo12" class="mini-stat-box"><span class="stat-label">Best Ao12</span><span id="statBestAo12" class="stat-value" style="color: #00e5ff;">--</span></div>
+                        <div id="boxAo100" class="mini-stat-box"><span class="stat-label">Ao100</span><span id="statAo100" class="stat-value">--</span></div>
+                        <div id="boxBestAo100" class="mini-stat-box"><span class="stat-label">Best Ao100</span><span id="statBestAo100" class="stat-value" style="color: #00e5ff;">--</span></div>
                     </div>
                     
                     <div class="table-container">
@@ -215,11 +224,25 @@
 
             <div id="page-data" class="page-view">
                 <h2>Session Management</h2>
-                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 800px;">
                     <p style="color: #aaa; margin-bottom: 20px;">Backup your session data to a CSV file, or load times from another device.</p>
                     <input type="file" id="importFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
                     <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="margin-right: 10px;">📥 Import CSV</button>
                     <button class="action-btn" onclick="exportCSV()">📤 Export CSV</button>
+                    <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
+
+                    <h3 style="margin-top: 0;">Session Overview</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                        <div id="boxMean_full" class="stat-box-large visible"><p class="stat-title">Mean</p><p id="statMean_full" class="stat-value">--</p></div>
+                        <div id="boxBest_full" class="stat-box-large visible"><p class="stat-title">Best</p><p id="statBest_full" class="stat-value" style="color: #00e5ff;">--</p></div>
+                        <div id="boxAo5_full" class="stat-box-large"><p class="stat-title">Current Ao5</p><p id="statAo5_full" class="stat-value">--</p></div>
+                        <div id="boxBestAo5_full" class="stat-box-large"><p class="stat-title">Best Ao5</p><p id="statBestAo5_full" class="stat-value" style="color: #00e5ff;">--</p></div>
+                        <div id="boxAo12_full" class="stat-box-large"><p class="stat-title">Current Ao12</p><p id="statAo12_full" class="stat-value">--</p></div>
+                        <div id="boxBestAo12_full" class="stat-box-large"><p class="stat-title">Best Ao12</p><p id="statBestAo12_full" class="stat-value" style="color: #00e5ff;">--</p></div>
+                        <div id="boxAo100_full" class="stat-box-large"><p class="stat-title">Current Ao100</p><p id="statAo100_full" class="stat-value">--</p></div>
+                        <div id="boxBestAo100_full" class="stat-box-large"><p class="stat-title">Best Ao100</p><p id="statBestAo100_full" class="stat-value" style="color: #00e5ff;">--</p></div>
+                    </div>
+
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
                     <h3 style="color: #d32f2f; margin-top: 0;">Danger Zone</h3>
                     <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves and start a fresh session.</p>
@@ -257,7 +280,7 @@
         let spaceHoldStart = 0;
         let holdInterval;
 
-        // --- 1. SETUP & DATA PERSISTENCE ---
+        // --- 1. SETUP & DATA PERSISTENCE LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
             currentDevice = localStorage.getItem('stackmatDevice');
             if (!currentDevice) {
@@ -301,7 +324,6 @@
             location.reload();
         }
 
-        // --- 2. UI NAVIGATION LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
@@ -312,18 +334,11 @@
         }
 
         function openPage(pageId, pageTitleText, btnElement) {
-            const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            
-            if (isAlreadyActive) {
-                document.getElementById('page-timer').classList.add('active');
-                document.getElementById('pageTitle').innerText = 'Main Timer';
-            } else {
-                document.getElementById(pageId).classList.add('active');
-                btnElement.classList.add('active');
-                document.getElementById('pageTitle').innerText = pageTitleText;
-            }
+            document.getElementById(pageId).classList.add('active');
+            btnElement.classList.add('active');
+            document.getElementById('pageTitle').innerText = pageTitleText;
         }
 
         function setFocusMode(active) {
@@ -443,13 +458,12 @@
             timerState = 'stopped';
             clearInterval(timerInterval);
             finalTimeMs = Date.now() - startTime;
-            setFocusMode(false);
+            setFocusMode(false); 
             saveSolve(activeInspectionPenalty);
         }
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
-        // --- 4. DATA, RUNNING AVERAGES, & PB TRACKING LOGIC ---
         function saveSolve(autoPenalty = 'OK') {
             solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
@@ -504,7 +518,7 @@
             }
         }
 
-        // Calculates WCA average (trims best/worst 5%) for any given slice of array
+        // Calculates WCA Average (Trims 5% best and 5% worst)
         function calcAverageOfSlice(slice) {
             if (slice.length === 0) return null;
             let times = slice.map(s => {
@@ -512,16 +526,25 @@
                 if (s.penalty === '+2') return s.timeMs + 2000;
                 return s.timeMs;
             });
-
-            // Automatically sort and trim
             times.sort((a, b) => a - b);
             let trimCount = Math.ceil(slice.length * 0.05);
             let countedTimes = times.slice(trimCount, slice.length - trimCount);
-            
-            if (countedTimes.includes(Infinity)) return Infinity; // Entire average is DNF
-            
+            if (countedTimes.includes(Infinity)) return Infinity; 
             let sum = countedTimes.reduce((a, b) => a + b, 0);
             return sum / countedTimes.length;
+        }
+
+        // Dual ID Helper to update both Sidebar and Data Page identical stats
+        function setUIStat(idStr, valStr, makeVisible) {
+            let s1 = document.getElementById('stat' + idStr);
+            let b1 = document.getElementById('box' + idStr);
+            if(s1) s1.innerText = valStr;
+            if(b1) makeVisible ? b1.classList.add('visible') : b1.classList.remove('visible');
+
+            let s2 = document.getElementById('stat' + idStr + '_full');
+            let b2 = document.getElementById('box' + idStr + '_full');
+            if(s2) s2.innerText = valStr;
+            if(b2) makeVisible ? b2.classList.add('visible') : b2.classList.remove('visible');
         }
 
         function updateStatsUI() {
@@ -530,14 +553,18 @@
             
             if(solves.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="color: #aaa; text-align:center; padding-top:20px;">No solves yet</td></tr>';
-                document.getElementById('statMean').innerText = '--';
-                document.getElementById('statAo5').innerText = '--';
-                document.getElementById('statAo12').innerText = '--';
-                document.getElementById('statAo100').innerText = '--';
+                setUIStat('Mean', '--', true);
+                setUIStat('Best', '--', false);
+                setUIStat('Ao5', '--', false);
+                setUIStat('BestAo5', '--', false);
+                setUIStat('Ao12', '--', false);
+                setUIStat('BestAo12', '--', false);
+                setUIStat('Ao100', '--', false);
+                setUIStat('BestAo100', '--', false);
                 return;
             }
 
-            // Pre-calculate running stats and find PBs
+            // --- Historical PB Engine ---
             let runningStats = [];
             let pbSingle = Infinity, pbAo5 = Infinity, pbAo12 = Infinity, pbAo100 = Infinity;
 
@@ -545,45 +572,46 @@
                 let s = solves[i];
                 let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
                 
-                if (actualMs < pbSingle) pbSingle = actualMs;
+                let isPbSingle = false;
+                if (actualMs !== Infinity && actualMs < pbSingle) { pbSingle = actualMs; isPbSingle = true; }
 
                 let ao5 = i >= 4 ? calcAverageOfSlice(solves.slice(i - 4, i + 1)) : null;
+                let isPbAo5 = false;
+                if (ao5 !== null && ao5 !== Infinity && ao5 < pbAo5) { pbAo5 = ao5; isPbAo5 = true; }
+
                 let ao12 = i >= 11 ? calcAverageOfSlice(solves.slice(i - 11, i + 1)) : null;
+                let isPbAo12 = false;
+                if (ao12 !== null && ao12 !== Infinity && ao12 < pbAo12) { pbAo12 = ao12; isPbAo12 = true; }
+
                 let ao100 = i >= 99 ? calcAverageOfSlice(solves.slice(i - 99, i + 1)) : null;
+                let isPbAo100 = false;
+                if (ao100 !== null && ao100 !== Infinity && ao100 < pbAo100) { pbAo100 = ao100; isPbAo100 = true; }
 
-                if (ao5 !== null && ao5 < pbAo5) pbAo5 = ao5;
-                if (ao12 !== null && ao12 < pbAo12) pbAo12 = ao12;
-                if (ao100 !== null && ao100 < pbAo100) pbAo100 = ao100;
-
-                runningStats.push({ single: actualMs, ao5, ao12, ao100 });
+                runningStats.push({ single: actualMs, ao5, ao12, ao100, isPbSingle, isPbAo5, isPbAo12, isPbAo100 });
             }
 
             let validTimes = [];
 
-            // Draw Table (Reverse loop so newest is top)
+            // Draw Table
             for(let i = solves.length - 1; i >= 0; i--) {
                 let s = solves[i];
                 let stats = runningStats[i];
                 
-                // Format Single string and color
                 let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
                 if (s.penalty === '+2') displaySingle += '+';
                 if (s.penalty !== 'DNF') validTimes.push(stats.single);
                 
-                let colorSingle = (stats.single === pbSingle && stats.single !== Infinity) ? 'val-pb' : 
-                                  (s.penalty === 'DNF' || s.penalty === '+2') ? (s.penalty==='DNF' ? 'val-dnf' : 'val-plus2') : '';
+                let colorSingle = stats.isPbSingle ? 'val-pb' : ((s.penalty === 'DNF' || s.penalty === '+2') ? (s.penalty==='DNF' ? 'val-dnf' : 'val-plus2') : '');
 
-                // Format Ao5, Ao12, Ao100
                 let displayAo5 = stats.ao5 === null ? '-' : (stats.ao5 === Infinity ? 'DNF' : formatTime(stats.ao5));
-                let colorAo5 = (stats.ao5 === pbAo5 && stats.ao5 !== Infinity) ? 'val-pb' : (stats.ao5 === null ? 'val-dim' : '');
+                let colorAo5 = stats.isPbAo5 ? 'val-pb' : (stats.ao5 === null ? 'val-dim' : '');
 
                 let displayAo12 = stats.ao12 === null ? '-' : (stats.ao12 === Infinity ? 'DNF' : formatTime(stats.ao12));
-                let colorAo12 = (stats.ao12 === pbAo12 && stats.ao12 !== Infinity) ? 'val-pb' : (stats.ao12 === null ? 'val-dim' : '');
+                let colorAo12 = stats.isPbAo12 ? 'val-pb' : (stats.ao12 === null ? 'val-dim' : '');
 
                 let displayAo100 = stats.ao100 === null ? '-' : (stats.ao100 === Infinity ? 'DNF' : formatTime(stats.ao100));
-                let colorAo100 = (stats.ao100 === pbAo100 && stats.ao100 !== Infinity) ? 'val-pb' : (stats.ao100 === null ? 'val-dim' : '');
+                let colorAo100 = stats.isPbAo100 ? 'val-pb' : (stats.ao100 === null ? 'val-dim' : '');
 
-                // Create Row (Title attribute allows users to hover to see the scramble without cluttering screen)
                 let tr = document.createElement('tr');
                 tr.title = `Scramble: ${s.scramble}`;
                 tr.innerHTML = `
@@ -596,16 +624,27 @@
                 tbody.appendChild(tr);
             }
 
-            // Update Top Mini Stats
+            // Overall Mean Calculation
             if(validTimes.length > 0) {
                 let sum = validTimes.reduce((a, b) => a + b, 0);
-                document.getElementById('statMean').innerText = formatTime(sum / validTimes.length);
-            } else { document.getElementById('statMean').innerText = 'DNF'; }
+                setUIStat('Mean', formatTime(sum / validTimes.length), true);
+            } else { 
+                setUIStat('Mean', 'DNF', true); 
+            }
 
+            // Sync Current and Bests Banners
             let latestStats = runningStats[runningStats.length - 1];
-            document.getElementById('statAo5').innerText = latestStats.ao5 === null ? '--' : (latestStats.ao5 === Infinity ? 'DNF' : formatTime(latestStats.ao5));
-            document.getElementById('statAo12').innerText = latestStats.ao12 === null ? '--' : (latestStats.ao12 === Infinity ? 'DNF' : formatTime(latestStats.ao12));
-            document.getElementById('statAo100').innerText = latestStats.ao100 === null ? '--' : (latestStats.ao100 === Infinity ? 'DNF' : formatTime(latestStats.ao100));
+
+            setUIStat('Best', pbSingle === Infinity ? '--' : formatTime(pbSingle), pbSingle !== Infinity);
+            
+            setUIStat('Ao5', latestStats.ao5 === null ? '--' : (latestStats.ao5 === Infinity ? 'DNF' : formatTime(latestStats.ao5)), pbAo5 !== Infinity);
+            setUIStat('BestAo5', pbAo5 === Infinity ? '--' : formatTime(pbAo5), pbAo5 !== Infinity);
+            
+            setUIStat('Ao12', latestStats.ao12 === null ? '--' : (latestStats.ao12 === Infinity ? 'DNF' : formatTime(latestStats.ao12)), pbAo12 !== Infinity);
+            setUIStat('BestAo12', pbAo12 === Infinity ? '--' : formatTime(pbAo12), pbAo12 !== Infinity);
+            
+            setUIStat('Ao100', latestStats.ao100 === null ? '--' : (latestStats.ao100 === Infinity ? 'DNF' : formatTime(latestStats.ao100)), pbAo100 !== Infinity);
+            setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
         // --- 5. EXPORT / IMPORT CSV LOGIC ---
