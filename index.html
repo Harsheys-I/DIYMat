@@ -60,6 +60,7 @@
         .session-manage-btn { background: #333; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .session-manage-btn:hover { background: #4CAF50; }
 
+        /* Mini Stats Grid - Dynamic Auto-Hiding */
         .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .mini-stat-box { background: #252525; padding: 8px 5px; border-radius: 6px; text-align: center; display: none; }
         .mini-stat-box.visible { display: block; }
@@ -196,13 +197,13 @@
                     <h2 id="sessionTitle" style="display:none;">Session 1</h2>
 
                     <div class="mini-stats-grid">
-                        <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
-                        <div id="boxBest" class="mini-stat-box visible"><span class="stat-label">Best</span><span id="statBest" class="stat-value" style="color: #00e5ff;">--</span></div>
-                        <div id="boxAo5" class="mini-stat-box"><span class="stat-label">Ao5</span><span id="statAo5" class="stat-value">--</span></div>
+                        <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Session Mean</span><span id="statMean" class="stat-value">--</span></div>
+                        <div id="boxBest" class="mini-stat-box visible"><span class="stat-label">Best Single</span><span id="statBest" class="stat-value" style="color: #00e5ff;">--</span></div>
+                        <div id="boxAo5" class="mini-stat-box"><span class="stat-label">Current Ao5</span><span id="statAo5" class="stat-value">--</span></div>
                         <div id="boxBestAo5" class="mini-stat-box"><span class="stat-label">Best Ao5</span><span id="statBestAo5" class="stat-value" style="color: #00e5ff;">--</span></div>
-                        <div id="boxAo12" class="mini-stat-box"><span class="stat-label">Ao12</span><span id="statAo12" class="stat-value">--</span></div>
+                        <div id="boxAo12" class="mini-stat-box"><span class="stat-label">Current Ao12</span><span id="statAo12" class="stat-value">--</span></div>
                         <div id="boxBestAo12" class="mini-stat-box"><span class="stat-label">Best Ao12</span><span id="statBestAo12" class="stat-value" style="color: #00e5ff;">--</span></div>
-                        <div id="boxAo100" class="mini-stat-box"><span class="stat-label">Ao100</span><span id="statAo100" class="stat-value">--</span></div>
+                        <div id="boxAo100" class="mini-stat-box"><span class="stat-label">Current Ao100</span><span id="statAo100" class="stat-value">--</span></div>
                         <div id="boxBestAo100" class="mini-stat-box"><span class="stat-label">Best Ao100</span><span id="statBestAo100" class="stat-value" style="color: #00e5ff;">--</span></div>
                     </div>
                     
@@ -244,7 +245,7 @@
                 <div style="background: #1e1e1e; padding: 20px 30px; border-radius: 8px; max-width: 600px;">
                     
                     <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
-                        <input type="checkbox" id="chkInspection" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> Enable WCA Inspection
+                        <input type="checkbox" id="chkInspection" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> Enable WCA Inspection Phase
                     </label>
                     
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
@@ -272,9 +273,17 @@
                         <span>Penalty Time Addition (ms):</span>
                         <input type="number" id="valPlusPenalty" step="100" min="0" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Scramble Length (moves):</span>
                         <input type="number" id="valScrambleLen" min="1" max="50" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Timer Decimals (e.g. 0.00 vs 0.000):</span>
+                        <input type="number" id="valTimerDecimals" min="1" max="4" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
+                        <span>Timer Screen Refresh Rate (ms):</span>
+                        <input type="number" id="valTimerUpdateRate" min="1" max="100" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
                 </div>
             </div>
@@ -293,8 +302,8 @@
 
                     <h3 style="margin-top: 0;">Active Session Overview</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 30px;">
-                        <div id="boxMean_full" class="stat-box-large visible"><p class="stat-title">Mean</p><p id="statMean_full" class="stat-value">--</p></div>
-                        <div id="boxBest_full" class="stat-box-large visible"><p class="stat-title">Best</p><p id="statBest_full" class="stat-value" style="color: #00e5ff;">--</p></div>
+                        <div id="boxMean_full" class="stat-box-large visible"><p class="stat-title">Session Mean</p><p id="statMean_full" class="stat-value">--</p></div>
+                        <div id="boxBest_full" class="stat-box-large visible"><p class="stat-title">Best Single</p><p id="statBest_full" class="stat-value" style="color: #00e5ff;">--</p></div>
                         <div id="boxAo5_full" class="stat-box-large"><p class="stat-title">Current Ao5</p><p id="statAo5_full" class="stat-value">--</p></div>
                         <div id="boxBestAo5_full" class="stat-box-large"><p class="stat-title">Best Ao5</p><p id="statBestAo5_full" class="stat-value" style="color: #00e5ff;">--</p></div>
                         <div id="boxAo12_full" class="stat-box-large"><p class="stat-title">Current Ao12</p><p id="statAo12_full" class="stat-value">--</p></div>
@@ -323,7 +332,7 @@
     </div>
 
     <script>
-        // --- GLOBALS & APP SETTINGS ---
+        // --- GLOBALS & ENGINE SETTINGS ---
         let currentDevice = '';
         let appSettings = {
             inspectionEnabled: true,
@@ -332,7 +341,9 @@
             holdDelay: 0.6,
             scrambleLen: 20,
             trimPct: 5,
-            plusPenalty: 2000
+            plusPenalty: 2000,
+            timerDecimals: 3,
+            timerUpdateRate: 10
         };
         
         let sessions = [];
@@ -372,8 +383,9 @@
             document.getElementById('valTrimPct').value = appSettings.trimPct;
             document.getElementById('valPlusPenalty').value = appSettings.plusPenalty;
             document.getElementById('valScrambleLen').value = appSettings.scrambleLen;
+            document.getElementById('valTimerDecimals').value = appSettings.timerDecimals;
+            document.getElementById('valTimerUpdateRate').value = appSettings.timerUpdateRate;
 
-            // Update UI Button Text dynamically
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
         }
 
@@ -385,11 +397,15 @@
             appSettings.trimPct = parseInt(document.getElementById('valTrimPct').value) || 5;
             appSettings.plusPenalty = parseInt(document.getElementById('valPlusPenalty').value) || 2000;
             appSettings.scrambleLen = parseInt(document.getElementById('valScrambleLen').value) || 20;
+            appSettings.timerDecimals = parseInt(document.getElementById('valTimerDecimals').value) || 3;
+            appSettings.timerUpdateRate = parseInt(document.getElementById('valTimerUpdateRate').value) || 10;
             
             localStorage.setItem('archSenseSettings', JSON.stringify(appSettings));
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
             
-            updateStatsUI(); // Retrigger math on trim/penalty changes
+            // Re-render UI in case decimals, penalties, or trims were altered
+            document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
+            updateStatsUI(); 
         }
 
         function loadDatabase() {
@@ -476,6 +492,7 @@
             document.getElementById('sessionModal').style.display = 'none';
         }
 
+        // BUILDING PURE DOM NODES SO EVENT LISTENERS SURVIVE
         function renderSessionManagerList() {
             const container = document.getElementById('sessionListContainer');
             container.innerHTML = '';
@@ -484,20 +501,39 @@
                 let row = document.createElement('div');
                 row.className = 'session-row';
                 
-                row.innerHTML += `
-                    <button class="session-row-btn" onclick="moveSession(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>↑</button>
-                    <button class="session-row-btn" onclick="moveSession(${index}, 1)" ${index === sessions.length - 1 ? 'disabled style="opacity:0.3"' : ''}>↓</button>
-                `;
+                // Up Button
+                let upBtn = document.createElement('button');
+                upBtn.className = 'session-row-btn';
+                upBtn.innerText = '↑';
+                if (index === 0) { upBtn.disabled = true; upBtn.style.opacity = '0.3'; }
+                else upBtn.onclick = () => moveSession(index, -1);
+                row.appendChild(upBtn);
+
+                // Down Button
+                let dnBtn = document.createElement('button');
+                dnBtn.className = 'session-row-btn';
+                dnBtn.innerText = '↓';
+                if (index === sessions.length - 1) { dnBtn.disabled = true; dnBtn.style.opacity = '0.3'; }
+                else dnBtn.onclick = () => moveSession(index, 1);
+                row.appendChild(dnBtn);
                 
+                // Text Input (Saves instantly on keystroke)
                 let input = document.createElement('input');
                 input.type = 'text';
                 input.value = s.name;
-                // BUG FIX: Using oninput to ensure every keystroke instantly saves to memory
                 input.oninput = (e) => renameSession(s.id, e.target.value);
                 row.appendChild(input);
 
-                row.innerHTML += `<span style="color:#888; font-size:0.9rem; min-width: 60px;">${s.solves.length} solves</span>`;
+                // Info Label
+                let span = document.createElement('span');
+                span.style.color = '#888';
+                span.style.fontSize = '0.9rem';
+                span.style.minWidth = '60px';
+                span.style.textAlign = 'right';
+                span.innerText = `${s.solves.length} solves`;
+                row.appendChild(span);
 
+                // Delete Button
                 let delBtn = document.createElement('button');
                 delBtn.className = 'session-row-btn del';
                 delBtn.innerText = '🗑️';
@@ -511,10 +547,10 @@
 
         function renameSession(id, newName) {
             let s = sessions.find(x => x.id === id);
-            if (s && newName.trim().length > 0) {
-                s.name = newName.trim();
+            if (s) {
+                s.name = newName; // Direct assignment preserves trailing spaces while typing
                 persistDatabase();
-                updateSessionUI(); // Updates dropdown instantly without re-rendering modal input
+                updateSessionUI(); // Instantly pushes name to background dropdown
             }
         }
 
@@ -570,11 +606,18 @@
         }
 
         function openPage(pageId, pageTitleText, btnElement) {
+            const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            btnElement.classList.add('active');
-            document.getElementById('pageTitle').innerText = pageTitleText;
+            
+            if (isAlreadyActive) {
+                document.getElementById('page-timer').classList.add('active');
+                document.getElementById('pageTitle').innerText = 'Main Timer';
+            } else {
+                document.getElementById(pageId).classList.add('active');
+                btnElement.classList.add('active');
+                document.getElementById('pageTitle').innerText = pageTitleText;
+            }
         }
 
         function setFocusMode(active) {
@@ -606,7 +649,7 @@
                         if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                             timerState = 'ready';
                             document.getElementById('mainTimerText').style.color = '#4CAF50'; 
-                            document.getElementById('mainTimerText').innerText = '0.000';
+                            document.getElementById('mainTimerText').innerText = formatTime(0);
                             setFocusMode(true); 
                             clearInterval(holdInterval);
                         }
@@ -622,7 +665,7 @@
                     if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                         timerState = 'ready';
                         document.getElementById('mainTimerText').style.color = '#4CAF50';
-                        document.getElementById('mainTimerText').innerText = '0.000';
+                        document.getElementById('mainTimerText').innerText = formatTime(0);
                         setFocusMode(true);
                         clearInterval(holdInterval);
                     }
@@ -685,7 +728,9 @@
             timerState = 'running';
             document.getElementById('mainTimerText').style.color = '#ffffff';
             startTime = Date.now();
-            timerInterval = setInterval(() => { document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime); }, 10);
+            timerInterval = setInterval(() => { 
+                document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime); 
+            }, appSettings.timerUpdateRate);
         }
 
         function stopTimer() {
@@ -696,9 +741,11 @@
             saveSolve(activeInspectionPenalty);
         }
 
-        function formatTime(ms) { return (ms / 1000).toFixed(3); }
+        function formatTime(ms) { 
+            return (ms / 1000).toFixed(appSettings.timerDecimals); 
+        }
 
-        // --- 5. DATA & STATISTICS LOGIC ---
+        // --- 5. DATA, AVERAGES, & PB TRACKING ---
         function saveSolve(autoPenalty = 'OK') {
             getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
@@ -732,7 +779,7 @@
             solves.pop();
             persistDatabase(); 
             document.getElementById('penalty-controls').style.display = 'none';
-            document.getElementById('mainTimerText').innerText = '0.000';
+            document.getElementById('mainTimerText').innerText = formatTime(0);
             document.getElementById('mainTimerText').style.color = '#ffffff';
             timerState = 'idle';
             setFocusMode(false);
@@ -859,7 +906,7 @@
             setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
-        // --- 6. IMPORT/EXPORT ---
+        // --- 6. EXPORT / IMPORT CSV ---
         function exportCSV(scope) {
             let dataToExport = [];
             let filename = '';
