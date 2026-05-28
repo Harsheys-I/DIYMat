@@ -6,18 +6,11 @@
     <title>ArchSense Timer Web App</title>
     <style>
         /* Base Dark Theme */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-            overflow: hidden; 
-            user-select: none;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; overflow: hidden; user-select: none; }
 
         /* Modal Styles */
-        #setupModal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background-color: #1e1e1e; padding: 2.5rem; border-radius: 12px; text-align: center; max-width: 800px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: #1e1e1e; padding: 2.5rem; border-radius: 12px; text-align: center; max-width: 800px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; display: flex; flex-direction: column; }
         h2 { margin-top: 0; font-size: 2rem; }
         p.subtitle { color: #aaaaaa; margin-bottom: 2rem; }
 
@@ -58,8 +51,16 @@
         #page-timer.active { display: flex; padding: 0; overflow: hidden; }
 
         /* Left Side: Stats Sidebar */
-        .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 10px 20px 20px 20px; flex-shrink: 0; }
-        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 15px 0; }
+        .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 15px 20px; flex-shrink: 0; }
+        
+        /* Session Selector UI */
+        .session-selector-container { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
+        .session-dropdown { flex-grow: 1; background: #252525; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; }
+        .session-dropdown:focus { border-color: #4CAF50; }
+        .session-manage-btn { background: #333; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .session-manage-btn:hover { background: #4CAF50; }
+
+        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .mini-stat-box { background: #252525; padding: 8px 5px; border-radius: 6px; text-align: center; display: none; }
         .mini-stat-box.visible { display: block; }
         .stat-label { display: block; color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
@@ -70,19 +71,16 @@
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-track { background: #252525; }
         .table-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-        
-        /* Table Styling */
         .table-container table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.95rem; text-align: right; }
-        .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; }
+        .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; z-index: 10; }
         .table-container td { padding: 10px; border-bottom: 1px solid #333; }
         .table-container tr:hover { background-color: #333; cursor: help; } 
         .table-container th:first-child, .table-container td:first-child { text-align: left; }
         
-        /* Specific Status Colors */
-        .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); } /* Blue/Cyan PB */
-        .val-dnf { color: #ff5252 !important; } /* Red DNF */
-        .val-plus2 { color: #ffeb3b !important; } /* Yellow +2 */
-        .val-dim { color: #888; } /* Faded text */
+        .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); } 
+        .val-dnf { color: #ff5252 !important; } 
+        .val-plus2 { color: #ffeb3b !important; } 
+        .val-dim { color: #888; } 
 
         /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
@@ -98,6 +96,8 @@
         .penalty-btn:hover { background: #444; }
         .action-btn { padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.2s; font-size: 1rem;}
         .action-btn:hover { background: #555; }
+        .action-btn-green { background: #4CAF50; }
+        .action-btn-green:hover { background: #45a049; }
         .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;}
         .reset-btn:hover { background: #b71c1c; }
 
@@ -112,10 +112,19 @@
         .stat-box-large { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 120px; text-align: center; display: none; }
         .stat-box-large.visible { display: block; }
 
+        /* Session Manager Modal Specifics */
+        .session-list-container { flex-grow: 1; overflow-y: auto; background: #151515; border-radius: 8px; margin-bottom: 20px; padding: 10px; text-align: left; }
+        .session-row { display: flex; align-items: center; gap: 10px; background: #252525; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
+        .session-row input { flex-grow: 1; background: transparent; border: 1px solid transparent; color: #fff; font-size: 1.1rem; padding: 5px; border-radius: 4px; }
+        .session-row input:focus { border-color: #4CAF50; background: #1e1e1e; outline: none; }
+        .session-row-btn { background: #333; color: #aaa; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+        .session-row-btn:hover { background: #444; color: #fff; }
+        .session-row-btn.del:hover { background: #d32f2f; color: #fff; }
+
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
             #mainContent.shifted { margin-left: 300px; width: calc(100% - 300px); }
-            .stats-sidebar { width: auto; border-right: none; border-bottom: 1px solid #333; max-height: 40vh; }
+            .stats-sidebar { width: auto; border-right: none; border-bottom: 1px solid #333; max-height: 50vh; }
             .timer-area { padding: 10px; justify-content: flex-start; }
             .timer-display { font-size: 20vw; }
         }
@@ -123,7 +132,7 @@
 </head>
 <body>
 
-    <div id="setupModal">
+    <div id="setupModal" class="modal-overlay">
         <div class="modal-content">
             <h2>Hardware Setup</h2>
             <p class="subtitle">Select your device to configure the connection protocol.</p>
@@ -140,6 +149,21 @@
                     <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,19 22,18.11 22,17V7C22,5.89 21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
                     <h3>Keyboard</h3><p>Debug Mode (Spacebar)</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sessionModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Manage Sessions</h2>
+            <p class="subtitle" style="margin-bottom: 1rem;">Rename, reorder, or delete your saved sessions.</p>
+            
+            <div id="sessionListContainer" class="session-list-container">
+                </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                <button class="action-btn action-btn-green" onclick="createNewSession()">➕ Add New Session</button>
+                <button class="action-btn" onclick="closeSessionManager()">Done</button>
             </div>
         </div>
     </div>
@@ -164,7 +188,13 @@
             <div id="page-timer" class="page-view active">
                 
                 <div class="stats-sidebar">
-                    <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center;">Session 1</h2>
+                    
+                    <div class="session-selector-container">
+                        <select id="sessionDropdown" class="session-dropdown" onchange="switchSession(this.value)">
+                            </select>
+                        <button class="session-manage-btn" onclick="openSessionManager()" title="Manage Sessions">⚙️</button>
+                    </div>
+
                     <div class="mini-stats-grid">
                         <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
                         <div id="boxBest" class="mini-stat-box visible"><span class="stat-label">Best</span><span id="statBest" class="stat-value" style="color: #00e5ff;">--</span></div>
@@ -223,15 +253,19 @@
             </div>
 
             <div id="page-data" class="page-view">
-                <h2>Session Management</h2>
+                <h2>Data & Export</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 800px;">
-                    <p style="color: #aaa; margin-bottom: 20px;">Backup your session data to a CSV file, or load times from another device.</p>
+                    <p style="color: #aaa; margin-bottom: 20px;">Backup your data to a CSV file, or load times from another device.</p>
+                    
                     <input type="file" id="importFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
                     <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="margin-right: 10px;">📥 Import CSV</button>
-                    <button class="action-btn" onclick="exportCSV()">📤 Export CSV</button>
+                    
+                    <button class="action-btn" onclick="exportCSV('current')" style="margin-right: 10px;">📤 Export Current Session</button>
+                    <button class="action-btn" onclick="exportCSV('all')">📤 Export All Sessions</button>
+
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
 
-                    <h3 style="margin-top: 0;">Session Overview</h3>
+                    <h3 style="margin-top: 0;">Active Session Overview</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 30px;">
                         <div id="boxMean_full" class="stat-box-large visible"><p class="stat-title">Mean</p><p id="statMean_full" class="stat-value">--</p></div>
                         <div id="boxBest_full" class="stat-box-large visible"><p class="stat-title">Best</p><p id="statBest_full" class="stat-value" style="color: #00e5ff;">--</p></div>
@@ -245,8 +279,8 @@
 
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
                     <h3 style="color: #d32f2f; margin-top: 0;">Danger Zone</h3>
-                    <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves and start a fresh session.</p>
-                    <button class="reset-btn" onclick="startNewSession()">🗑️ Clear Session</button>
+                    <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves from the <strong>current</strong> session only.</p>
+                    <button class="reset-btn" onclick="clearCurrentSession()">🗑️ Clear Current Session</button>
                 </div>
             </div>
 
@@ -263,24 +297,25 @@
     </div>
 
     <script>
-        // --- GLOBALS ---
+        // --- DATA ARCHITECTURE ---
         let currentDevice = '';
-        let solves = [];
-        let sessionCount = 1;
         
+        // Relational Session Database
+        let sessions = [];
+        let activeSessionId = null;
+
+        // Timer Execution Globals
         let timerState = 'idle'; 
         let startTime = 0;
         let finalTimeMs = 0;
         let timerInterval;
-
         let inspectStartTime = 0;
         let inspectionInterval;
         let activeInspectionPenalty = 'OK';
-        
         let spaceHoldStart = 0;
         let holdInterval;
 
-        // --- 1. SETUP & DATA PERSISTENCE LOGIC ---
+        // --- 1. SETUP & DATA PERSISTENCE ---
         document.addEventListener('DOMContentLoaded', () => {
             currentDevice = localStorage.getItem('stackmatDevice');
             if (!currentDevice) {
@@ -289,23 +324,165 @@
                 loadMainApp(currentDevice);
             }
             generateScramble();
-            loadSessionData();
+            loadDatabase();
         });
 
-        function loadSessionData() {
-            const savedData = localStorage.getItem('stackmatSessionData');
-            const savedSessionCount = localStorage.getItem('stackmatSessionCount');
-            if (savedData) solves = JSON.parse(savedData);
-            if (savedSessionCount) sessionCount = parseInt(savedSessionCount);
-            document.getElementById('sessionTitle').innerText = `Session ${sessionCount}`;
+        function loadDatabase() {
+            const savedSessions = localStorage.getItem('archSenseSessions');
+            const savedActiveId = localStorage.getItem('archSenseActiveSessionId');
+
+            if (savedSessions) {
+                // Load new format
+                sessions = JSON.parse(savedSessions);
+                activeSessionId = savedActiveId ? parseInt(savedActiveId) : sessions[0].id;
+            } else {
+                // Migrator: Check if old V1 single-array data exists
+                const legacyData = localStorage.getItem('stackmatSessionData');
+                if (legacyData) {
+                    sessions = [{ id: Date.now(), name: "Session 1", solves: JSON.parse(legacyData) }];
+                } else {
+                    // Brand new user
+                    sessions = [{ id: Date.now(), name: "Session 1", solves: [] }];
+                }
+                activeSessionId = sessions[0].id;
+                persistDatabase(); // Save migrated/new format immediately
+            }
+            
+            updateSessionUI();
             updateStatsUI();
         }
 
-        function persistData() {
-            localStorage.setItem('stackmatSessionData', JSON.stringify(solves));
-            localStorage.setItem('stackmatSessionCount', sessionCount.toString());
+        function persistDatabase() {
+            localStorage.setItem('archSenseSessions', JSON.stringify(sessions));
+            localStorage.setItem('archSenseActiveSessionId', activeSessionId.toString());
         }
 
+        function getActiveSession() {
+            return sessions.find(s => s.id === activeSessionId);
+        }
+
+        // --- 2. SESSION MANAGEMENT LOGIC ---
+        function updateSessionUI() {
+            const dropdown = document.getElementById('sessionDropdown');
+            dropdown.innerHTML = '';
+            
+            sessions.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `${s.name} (${s.solves.length})`;
+                if (s.id === activeSessionId) opt.selected = true;
+                dropdown.appendChild(opt);
+            });
+        }
+
+        function switchSession(id) {
+            activeSessionId = parseInt(id);
+            persistDatabase();
+            updateSessionUI();
+            updateStatsUI();
+        }
+
+        function createNewSession() {
+            const newId = Date.now();
+            sessions.push({ id: newId, name: `Session ${sessions.length + 1}`, solves: [] });
+            activeSessionId = newId;
+            persistDatabase();
+            updateSessionUI();
+            updateStatsUI();
+            renderSessionManagerList(); // Refresh modal if open
+        }
+
+        function clearCurrentSession() {
+            if(confirm(`Are you sure you want to delete all solves in "${getActiveSession().name}"?`)) {
+                getActiveSession().solves = [];
+                persistDatabase();
+                updateSessionUI();
+                updateStatsUI();
+                openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
+            }
+        }
+
+        // --- SESSION MODAL UI ---
+        function openSessionManager() {
+            renderSessionManagerList();
+            document.getElementById('sessionModal').style.display = 'flex';
+        }
+
+        function closeSessionManager() {
+            document.getElementById('sessionModal').style.display = 'none';
+        }
+
+        function renderSessionManagerList() {
+            const container = document.getElementById('sessionListContainer');
+            container.innerHTML = '';
+
+            sessions.forEach((s, index) => {
+                let row = document.createElement('div');
+                row.className = 'session-row';
+                
+                // Up/Down Arrows
+                row.innerHTML += `
+                    <button class="session-row-btn" onclick="moveSession(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>↑</button>
+                    <button class="session-row-btn" onclick="moveSession(${index}, 1)" ${index === sessions.length - 1 ? 'disabled style="opacity:0.3"' : ''}>↓</button>
+                `;
+                
+                // Name Input
+                let input = document.createElement('input');
+                input.type = 'text';
+                input.value = s.name;
+                input.onchange = (e) => renameSession(s.id, e.target.value);
+                row.appendChild(input);
+
+                // Stats hint
+                row.innerHTML += `<span style="color:#888; font-size:0.9rem; min-width: 60px;">${s.solves.length} solves</span>`;
+
+                // Delete Button
+                let delBtn = document.createElement('button');
+                delBtn.className = 'session-row-btn del';
+                delBtn.innerText = '🗑️';
+                if (sessions.length === 1) delBtn.disabled = true; // Prevent deleting last session
+                else delBtn.onclick = () => deleteSession(s.id);
+                row.appendChild(delBtn);
+
+                container.appendChild(row);
+            });
+        }
+
+        function renameSession(id, newName) {
+            let s = sessions.find(x => x.id === id);
+            if (s && newName.trim().length > 0) {
+                s.name = newName.trim();
+                persistDatabase();
+                updateSessionUI();
+            }
+        }
+
+        function moveSession(index, direction) {
+            if (index + direction >= 0 && index + direction < sessions.length) {
+                // Swap array elements
+                let temp = sessions[index];
+                sessions[index] = sessions[index + direction];
+                sessions[index + direction] = temp;
+                persistDatabase();
+                updateSessionUI();
+                renderSessionManagerList();
+            }
+        }
+
+        function deleteSession(id) {
+            if (sessions.length <= 1) return;
+            if (confirm("Delete this session forever? This cannot be undone.")) {
+                sessions = sessions.filter(s => s.id !== id);
+                // If we deleted the active session, fallback to the first one available
+                if (activeSessionId === id) activeSessionId = sessions[0].id;
+                persistDatabase();
+                updateSessionUI();
+                updateStatsUI();
+                renderSessionManagerList();
+            }
+        }
+
+        // --- HARDWARE & DEVICE SETUP ---
         function selectDevice(deviceType) {
             localStorage.setItem('stackmatDevice', deviceType);
             document.getElementById('setupModal').style.display = 'none';
@@ -324,6 +501,7 @@
             location.reload();
         }
 
+        // --- 3. UI NAVIGATION LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
@@ -334,11 +512,18 @@
         }
 
         function openPage(pageId, pageTitleText, btnElement) {
+            const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            btnElement.classList.add('active');
-            document.getElementById('pageTitle').innerText = pageTitleText;
+            
+            if (isAlreadyActive) {
+                document.getElementById('page-timer').classList.add('active');
+                document.getElementById('pageTitle').innerText = 'Main Timer';
+            } else {
+                document.getElementById(pageId).classList.add('active');
+                btnElement.classList.add('active');
+                document.getElementById('pageTitle').innerText = pageTitleText;
+            }
         }
 
         function setFocusMode(active) {
@@ -346,7 +531,7 @@
             else document.body.classList.remove('focus-mode');
         }
 
-        // --- 3. KEYBOARD TIMER LOGIC ---
+        // --- 4. KEYBOARD TIMER LOGIC ---
         document.addEventListener('keydown', (e) => {
             if (currentDevice !== 'keyboard' || e.code !== 'Space') return;
             e.preventDefault(); 
@@ -464,19 +649,22 @@
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
+        // --- 5. DATA, RUNNING AVERAGES, & PB TRACKING ---
         function saveSolve(autoPenalty = 'OK') {
-            solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
+            getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
-            persistData(); 
+            persistDatabase(); 
             applyVisualPenalty(autoPenalty, finalTimeMs);
+            updateSessionUI(); // updates solve count in dropdown
             updateStatsUI();
             generateScramble();
         }
 
         function applyPenalty(type) {
+            let solves = getActiveSession().solves;
             if(solves.length === 0) return;
             solves[solves.length - 1].penalty = type;
-            persistData(); 
+            persistDatabase(); 
             applyVisualPenalty(type, solves[solves.length - 1].timeMs);
             updateStatsUI();
         }
@@ -490,35 +678,19 @@
         }
 
         function deleteLastSolve() {
+            let solves = getActiveSession().solves;
             if(solves.length === 0) return;
             solves.pop();
-            persistData(); 
+            persistDatabase(); 
             document.getElementById('penalty-controls').style.display = 'none';
             document.getElementById('mainTimerText').innerText = '0.000';
             document.getElementById('mainTimerText').style.color = '#ffffff';
             timerState = 'idle';
             setFocusMode(false);
+            updateSessionUI();
             updateStatsUI();
         }
 
-        function startNewSession() {
-            if(confirm("Are you sure you want to completely clear Session " + sessionCount + "?")) {
-                solves = [];
-                sessionCount++;
-                persistData(); 
-                document.getElementById('sessionTitle').innerText = `Session ${sessionCount}`;
-                document.getElementById('mainTimerText').innerText = '0.000';
-                document.getElementById('mainTimerText').style.color = '#ffffff';
-                document.getElementById('penalty-controls').style.display = 'none';
-                timerState = 'idle';
-                setFocusMode(false);
-                updateStatsUI();
-                generateScramble();
-                openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
-            }
-        }
-
-        // Calculates WCA Average (Trims 5% best and 5% worst)
         function calcAverageOfSlice(slice) {
             if (slice.length === 0) return null;
             let times = slice.map(s => {
@@ -534,7 +706,6 @@
             return sum / countedTimes.length;
         }
 
-        // Dual ID Helper to update both Sidebar and Data Page identical stats
         function setUIStat(idStr, valStr, makeVisible) {
             let s1 = document.getElementById('stat' + idStr);
             let b1 = document.getElementById('box' + idStr);
@@ -548,6 +719,7 @@
         }
 
         function updateStatsUI() {
+            let solves = getActiveSession().solves;
             let tbody = document.getElementById('solveTableBody');
             tbody.innerHTML = '';
             
@@ -564,7 +736,6 @@
                 return;
             }
 
-            // --- Historical PB Engine ---
             let runningStats = [];
             let pbSingle = Infinity, pbAo5 = Infinity, pbAo12 = Infinity, pbAo100 = Infinity;
 
@@ -573,26 +744,25 @@
                 let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
                 
                 let isPbSingle = false;
-                if (actualMs !== Infinity && actualMs < pbSingle) { pbSingle = actualMs; isPbSingle = true; }
+                if (actualMs !== Infinity && actualMs <= pbSingle) { pbSingle = actualMs; isPbSingle = true; }
 
                 let ao5 = i >= 4 ? calcAverageOfSlice(solves.slice(i - 4, i + 1)) : null;
                 let isPbAo5 = false;
-                if (ao5 !== null && ao5 !== Infinity && ao5 < pbAo5) { pbAo5 = ao5; isPbAo5 = true; }
+                if (ao5 !== null && ao5 !== Infinity && ao5 <= pbAo5) { pbAo5 = ao5; isPbAo5 = true; }
 
                 let ao12 = i >= 11 ? calcAverageOfSlice(solves.slice(i - 11, i + 1)) : null;
                 let isPbAo12 = false;
-                if (ao12 !== null && ao12 !== Infinity && ao12 < pbAo12) { pbAo12 = ao12; isPbAo12 = true; }
+                if (ao12 !== null && ao12 !== Infinity && ao12 <= pbAo12) { pbAo12 = ao12; isPbAo12 = true; }
 
                 let ao100 = i >= 99 ? calcAverageOfSlice(solves.slice(i - 99, i + 1)) : null;
                 let isPbAo100 = false;
-                if (ao100 !== null && ao100 !== Infinity && ao100 < pbAo100) { pbAo100 = ao100; isPbAo100 = true; }
+                if (ao100 !== null && ao100 !== Infinity && ao100 <= pbAo100) { pbAo100 = ao100; isPbAo100 = true; }
 
                 runningStats.push({ single: actualMs, ao5, ao12, ao100, isPbSingle, isPbAo5, isPbAo12, isPbAo100 });
             }
 
             let validTimes = [];
 
-            // Draw Table
             for(let i = solves.length - 1; i >= 0; i--) {
                 let s = solves[i];
                 let stats = runningStats[i];
@@ -624,7 +794,6 @@
                 tbody.appendChild(tr);
             }
 
-            // Overall Mean Calculation
             if(validTimes.length > 0) {
                 let sum = validTimes.reduce((a, b) => a + b, 0);
                 setUIStat('Mean', formatTime(sum / validTimes.length), true);
@@ -632,7 +801,6 @@
                 setUIStat('Mean', 'DNF', true); 
             }
 
-            // Sync Current and Bests Banners
             let latestStats = runningStats[runningStats.length - 1];
 
             setUIStat('Best', pbSingle === Infinity ? '--' : formatTime(pbSingle), pbSingle !== Infinity);
@@ -647,16 +815,50 @@
             setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
-        // --- 5. EXPORT / IMPORT CSV LOGIC ---
-        function exportCSV() {
-            if (solves.length === 0) { alert("No solves to export!"); return; }
-            let csvContent = "Solve Number,Time (ms),Penalty,Scramble\n";
-            solves.forEach((solve, index) => { csvContent += `${index + 1},${solve.timeMs},${solve.penalty},"${solve.scramble}"\n`; });
+        // --- 6. EXPORT / IMPORT CSV LOGIC ---
+        function exportCSV(scope) {
+            let dataToExport = [];
+            let filename = '';
+
+            if (scope === 'current') {
+                dataToExport = getActiveSession().solves;
+                if (dataToExport.length === 0) { alert("Current session has no solves!"); return; }
+                filename = `ArchSense_${getActiveSession().name.replace(/\s+/g, '_')}.csv`;
+            } else {
+                sessions.forEach(s => {
+                    s.solves.forEach(solve => {
+                        // Append session name to solve object for export
+                        dataToExport.push({ sessionName: s.name, ...solve });
+                    });
+                });
+                if (dataToExport.length === 0) { alert("No solves exist in any session!"); return; }
+                filename = `ArchSense_All_Sessions Backup.csv`;
+            }
+
+            let csvContent = scope === 'all' ? "Session,Solve Number,Time (ms),Penalty,Scramble\n" : "Solve Number,Time (ms),Penalty,Scramble\n";
+            
+            // To maintain correct solve numbering per session during export
+            let currentSessionTracker = "";
+            let solveCounter = 1;
+
+            dataToExport.forEach((solve) => {
+                if (scope === 'all') {
+                    if (solve.sessionName !== currentSessionTracker) {
+                        currentSessionTracker = solve.sessionName;
+                        solveCounter = 1;
+                    }
+                    csvContent += `"${solve.sessionName}",${solveCounter},${solve.timeMs},${solve.penalty},"${solve.scramble}"\n`;
+                } else {
+                    csvContent += `${solveCounter},${solve.timeMs},${solve.penalty},"${solve.scramble}"\n`;
+                }
+                solveCounter++;
+            });
+
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `ArchSense_Session_${sessionCount}.csv`);
+            link.setAttribute("download", filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -669,18 +871,50 @@
             reader.onload = function(e) {
                 const text = e.target.result;
                 const rows = text.split('\n');
-                solves = [];
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i].trim();
-                    if (!row) continue;
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (cols.length >= 4) {
-                        solves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, '') });
+                
+                // Determine if this is an "All Sessions" backup or a Single Session backup
+                const headerCols = rows[0].split(',');
+                const isAllSessionsFormat = headerCols[0].trim() === "Session";
+
+                if (isAllSessionsFormat) {
+                    sessions = []; // Wipe completely to load backup
+                    
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i].trim();
+                        if (!row) continue;
+                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if (cols.length >= 5) {
+                            let sName = cols[0].replace(/(^"|"$)/g, '');
+                            
+                            // Find or create the session
+                            let existingSession = sessions.find(s => s.name === sName);
+                            if (!existingSession) {
+                                existingSession = { id: Date.now() + i, name: sName, solves: [] };
+                                sessions.push(existingSession);
+                            }
+
+                            existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, '') });
+                        }
                     }
+                    activeSessionId = sessions[0].id;
+                } else {
+                    // Import into CURRENT active session
+                    let importedSolves = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i].trim();
+                        if (!row) continue;
+                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if (cols.length >= 4) {
+                            importedSolves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, '') });
+                        }
+                    }
+                    getActiveSession().solves = importedSolves;
                 }
-                persistData();
+
+                persistDatabase();
+                updateSessionUI();
                 updateStatsUI();
-                alert(`Successfully imported ${solves.length} solves!`);
+                alert(`Successfully imported file!`);
                 document.getElementById('importFileInput').value = ''; 
                 openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
             };
