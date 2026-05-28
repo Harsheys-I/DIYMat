@@ -188,12 +188,13 @@
             <div id="page-timer" class="page-view active">
                 
                 <div class="stats-sidebar">
-                    
                     <div class="session-selector-container">
                         <select id="sessionDropdown" class="session-dropdown" onchange="switchSession(this.value)">
                             </select>
                         <button class="session-manage-btn" onclick="openSessionManager()" title="Manage Sessions">⚙️</button>
                     </div>
+
+                    <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center; display:none;">Session 1</h2>
 
                     <div class="mini-stats-grid">
                         <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
@@ -243,12 +244,23 @@
             <div id="page-settings" class="page-view">
                 <h2>Application Settings</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
-                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
-                        <input type="checkbox" id="chkInspection" checked style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
+                    <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
+                        <input type="checkbox" id="chkInspection" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> Enable WCA Inspection
                     </label>
-                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
-                        <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode
-                    </label>
+                    <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Inspection Duration (seconds):</span>
+                        <input type="number" id="valInspectionTime" min="1" max="60" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Timer Hold Delay (seconds):</span>
+                        <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
+                        <span>Scramble Length (moves):</span>
+                        <input type="number" id="valScrambleLen" min="1" max="50" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                    </div>
                 </div>
             </div>
 
@@ -279,7 +291,7 @@
 
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
                     <h3 style="color: #d32f2f; margin-top: 0;">Danger Zone</h3>
-                    <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves from the <strong>current</strong> session only.</p>
+                    <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves from the <strong id="dangerZoneSessionName">current</strong> session only.</p>
                     <button class="reset-btn" onclick="clearCurrentSession()">🗑️ Clear Current Session</button>
                 </div>
             </div>
@@ -297,8 +309,14 @@
     </div>
 
     <script>
-        // --- DATA ARCHITECTURE ---
+        // --- GLOBALS & APP SETTINGS ---
         let currentDevice = '';
+        let appSettings = {
+            inspectionEnabled: true,
+            inspectionTime: 15,
+            holdDelay: 0.6,
+            scrambleLen: 20
+        };
         
         // Relational Session Database
         let sessions = [];
@@ -315,7 +333,7 @@
         let spaceHoldStart = 0;
         let holdInterval;
 
-        // --- 1. SETUP & DATA PERSISTENCE ---
+        // --- 1. INITIALIZATION & STORAGE ---
         document.addEventListener('DOMContentLoaded', () => {
             currentDevice = localStorage.getItem('stackmatDevice');
             if (!currentDevice) {
@@ -323,29 +341,46 @@
             } else {
                 loadMainApp(currentDevice);
             }
-            generateScramble();
+            loadSettings();
             loadDatabase();
+            generateScramble();
         });
+
+        function loadSettings() {
+            const saved = localStorage.getItem('archSenseSettings');
+            if (saved) {
+                appSettings = { ...appSettings, ...JSON.parse(saved) };
+            }
+            document.getElementById('chkInspection').checked = appSettings.inspectionEnabled;
+            document.getElementById('valInspectionTime').value = appSettings.inspectionTime;
+            document.getElementById('valHoldDelay').value = appSettings.holdDelay;
+            document.getElementById('valScrambleLen').value = appSettings.scrambleLen;
+        }
+
+        function saveSettings() {
+            appSettings.inspectionEnabled = document.getElementById('chkInspection').checked;
+            appSettings.inspectionTime = parseInt(document.getElementById('valInspectionTime').value) || 15;
+            appSettings.holdDelay = parseFloat(document.getElementById('valHoldDelay').value) || 0.6;
+            appSettings.scrambleLen = parseInt(document.getElementById('valScrambleLen').value) || 20;
+            localStorage.setItem('archSenseSettings', JSON.stringify(appSettings));
+        }
 
         function loadDatabase() {
             const savedSessions = localStorage.getItem('archSenseSessions');
             const savedActiveId = localStorage.getItem('archSenseActiveSessionId');
 
             if (savedSessions) {
-                // Load new format
                 sessions = JSON.parse(savedSessions);
                 activeSessionId = savedActiveId ? parseInt(savedActiveId) : sessions[0].id;
             } else {
-                // Migrator: Check if old V1 single-array data exists
                 const legacyData = localStorage.getItem('stackmatSessionData');
                 if (legacyData) {
                     sessions = [{ id: Date.now(), name: "Session 1", solves: JSON.parse(legacyData) }];
                 } else {
-                    // Brand new user
                     sessions = [{ id: Date.now(), name: "Session 1", solves: [] }];
                 }
                 activeSessionId = sessions[0].id;
-                persistDatabase(); // Save migrated/new format immediately
+                persistDatabase(); 
             }
             
             updateSessionUI();
@@ -358,10 +393,10 @@
         }
 
         function getActiveSession() {
-            return sessions.find(s => s.id === activeSessionId);
+            return sessions.find(s => s.id === activeSessionId) || sessions[0];
         }
 
-        // --- 2. SESSION MANAGEMENT LOGIC ---
+        // --- 2. SESSION MANAGEMENT ---
         function updateSessionUI() {
             const dropdown = document.getElementById('sessionDropdown');
             dropdown.innerHTML = '';
@@ -373,6 +408,11 @@
                 if (s.id === activeSessionId) opt.selected = true;
                 dropdown.appendChild(opt);
             });
+
+            // Keep titles perfectly in sync
+            const activeName = getActiveSession().name;
+            document.getElementById('sessionTitle').innerText = activeName;
+            document.getElementById('dangerZoneSessionName').innerText = activeName;
         }
 
         function switchSession(id) {
@@ -389,7 +429,7 @@
             persistDatabase();
             updateSessionUI();
             updateStatsUI();
-            renderSessionManagerList(); // Refresh modal if open
+            renderSessionManagerList(); 
         }
 
         function clearCurrentSession() {
@@ -402,7 +442,6 @@
             }
         }
 
-        // --- SESSION MODAL UI ---
         function openSessionManager() {
             renderSessionManagerList();
             document.getElementById('sessionModal').style.display = 'flex';
@@ -420,27 +459,23 @@
                 let row = document.createElement('div');
                 row.className = 'session-row';
                 
-                // Up/Down Arrows
                 row.innerHTML += `
                     <button class="session-row-btn" onclick="moveSession(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>↑</button>
                     <button class="session-row-btn" onclick="moveSession(${index}, 1)" ${index === sessions.length - 1 ? 'disabled style="opacity:0.3"' : ''}>↓</button>
                 `;
                 
-                // Name Input
                 let input = document.createElement('input');
                 input.type = 'text';
                 input.value = s.name;
                 input.onchange = (e) => renameSession(s.id, e.target.value);
                 row.appendChild(input);
 
-                // Stats hint
                 row.innerHTML += `<span style="color:#888; font-size:0.9rem; min-width: 60px;">${s.solves.length} solves</span>`;
 
-                // Delete Button
                 let delBtn = document.createElement('button');
                 delBtn.className = 'session-row-btn del';
                 delBtn.innerText = '🗑️';
-                if (sessions.length === 1) delBtn.disabled = true; // Prevent deleting last session
+                if (sessions.length === 1) delBtn.disabled = true; 
                 else delBtn.onclick = () => deleteSession(s.id);
                 row.appendChild(delBtn);
 
@@ -454,12 +489,12 @@
                 s.name = newName.trim();
                 persistDatabase();
                 updateSessionUI();
+                // Not forcing a full re-render of modal to keep input focus smooth
             }
         }
 
         function moveSession(index, direction) {
             if (index + direction >= 0 && index + direction < sessions.length) {
-                // Swap array elements
                 let temp = sessions[index];
                 sessions[index] = sessions[index + direction];
                 sessions[index + direction] = temp;
@@ -473,7 +508,6 @@
             if (sessions.length <= 1) return;
             if (confirm("Delete this session forever? This cannot be undone.")) {
                 sessions = sessions.filter(s => s.id !== id);
-                // If we deleted the active session, fallback to the first one available
                 if (activeSessionId === id) activeSessionId = sessions[0].id;
                 persistDatabase();
                 updateSessionUI();
@@ -482,7 +516,7 @@
             }
         }
 
-        // --- HARDWARE & DEVICE SETUP ---
+        // --- 3. HARDWARE & UI LOGIC ---
         function selectDevice(deviceType) {
             localStorage.setItem('stackmatDevice', deviceType);
             document.getElementById('setupModal').style.display = 'none';
@@ -501,7 +535,6 @@
             location.reload();
         }
 
-        // --- 3. UI NAVIGATION LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
@@ -537,7 +570,7 @@
             e.preventDefault(); 
             if (e.repeat) return; 
 
-            const useInspection = document.getElementById('chkInspection').checked;
+            const useInspection = appSettings.inspectionEnabled;
 
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
@@ -546,7 +579,7 @@
                     timerState = 'inspecting_starting';
                     setFocusMode(true); 
                     document.getElementById('mainTimerText').style.color = '#ff9800'; 
-                    document.getElementById('mainTimerText').innerText = "15";
+                    document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString();
                 } else {
                     timerState = 'starting_hold';
                     activeInspectionPenalty = 'OK';
@@ -554,7 +587,7 @@
                     document.getElementById('mainTimerText').style.color = '#d32f2f'; 
                     
                     holdInterval = setInterval(() => {
-                        if (Date.now() - spaceHoldStart > 600) {
+                        if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                             timerState = 'ready';
                             document.getElementById('mainTimerText').style.color = '#4CAF50'; 
                             document.getElementById('mainTimerText').innerText = '0.000';
@@ -570,7 +603,7 @@
                 document.getElementById('mainTimerText').style.color = '#d32f2f'; 
                 
                 holdInterval = setInterval(() => {
-                    if (Date.now() - spaceHoldStart > 600) {
+                    if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                         timerState = 'ready';
                         document.getElementById('mainTimerText').style.color = '#4CAF50';
                         document.getElementById('mainTimerText').innerText = '0.000';
@@ -612,7 +645,7 @@
             
             inspectionInterval = setInterval(() => {
                 let elapsed = Date.now() - inspectStartTime;
-                let remaining = 15 - Math.floor(elapsed / 1000);
+                let remaining = appSettings.inspectionTime - Math.floor(elapsed / 1000);
                 
                 if (remaining <= 0 && remaining > -2) activeInspectionPenalty = '+2';
                 else if (remaining <= -2) activeInspectionPenalty = 'DNF';
@@ -649,13 +682,13 @@
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
-        // --- 5. DATA, RUNNING AVERAGES, & PB TRACKING ---
+        // --- 5. DATA, AVERAGES, & PB TRACKING ---
         function saveSolve(autoPenalty = 'OK') {
             getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
             persistDatabase(); 
             applyVisualPenalty(autoPenalty, finalTimeMs);
-            updateSessionUI(); // updates solve count in dropdown
+            updateSessionUI();
             updateStatsUI();
             generateScramble();
         }
@@ -815,7 +848,7 @@
             setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
-        // --- 6. EXPORT / IMPORT CSV LOGIC ---
+        // --- 6. EXPORT / IMPORT CSV ---
         function exportCSV(scope) {
             let dataToExport = [];
             let filename = '';
@@ -827,7 +860,6 @@
             } else {
                 sessions.forEach(s => {
                     s.solves.forEach(solve => {
-                        // Append session name to solve object for export
                         dataToExport.push({ sessionName: s.name, ...solve });
                     });
                 });
@@ -836,8 +868,6 @@
             }
 
             let csvContent = scope === 'all' ? "Session,Solve Number,Time (ms),Penalty,Scramble\n" : "Solve Number,Time (ms),Penalty,Scramble\n";
-            
-            // To maintain correct solve numbering per session during export
             let currentSessionTracker = "";
             let solveCounter = 1;
 
@@ -872,33 +902,27 @@
                 const text = e.target.result;
                 const rows = text.split('\n');
                 
-                // Determine if this is an "All Sessions" backup or a Single Session backup
                 const headerCols = rows[0].split(',');
                 const isAllSessionsFormat = headerCols[0].trim() === "Session";
 
                 if (isAllSessionsFormat) {
-                    sessions = []; // Wipe completely to load backup
-                    
+                    sessions = []; 
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i].trim();
                         if (!row) continue;
                         const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                         if (cols.length >= 5) {
                             let sName = cols[0].replace(/(^"|"$)/g, '');
-                            
-                            // Find or create the session
                             let existingSession = sessions.find(s => s.name === sName);
                             if (!existingSession) {
                                 existingSession = { id: Date.now() + i, name: sName, solves: [] };
                                 sessions.push(existingSession);
                             }
-
                             existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, '') });
                         }
                     }
                     activeSessionId = sessions[0].id;
                 } else {
-                    // Import into CURRENT active session
                     let importedSolves = [];
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i].trim();
@@ -926,7 +950,7 @@
             const modifiers = ['', "'", '2'];
             let scramble = [];
             let lastFace = -1;
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < appSettings.scrambleLen; i++) {
                 let currentFace;
                 do { currentFace = Math.floor(Math.random() * faces.length); } while (currentFace === lastFace);
                 lastFace = currentFace;
