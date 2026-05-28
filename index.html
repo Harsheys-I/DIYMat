@@ -25,7 +25,7 @@
 
         /* Main App Interface */
         #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
-
+        
         /* Sliding Panel */
         #sidePanel { position: fixed; top: 0; left: -400px; width: 400px; height: 100%; background-color: #1e1e1e; border-right: 1px solid #333; transition: left 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
         #sidePanel.open { left: 0; }
@@ -41,7 +41,7 @@
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background-color: #1a1a1a; border-bottom: 1px solid #333; }
         .menu-btn { background: #333; color: white; border: none; padding: 10px 15px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; width: 100px; text-align: center; }
         .menu-btn:hover { background: #4CAF50; }
-
+        
         .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
 
@@ -52,7 +52,7 @@
 
         /* Left Side: Stats Sidebar */
         .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 15px 20px; flex-shrink: 0; }
-
+        
         /* Session Selector UI */
         .session-selector-container { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
         .session-dropdown { flex-grow: 1; background: #252525; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; text-overflow: ellipsis; }
@@ -74,13 +74,13 @@
         .table-container table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.95rem; text-align: right; }
         .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; z-index: 10; }
         .table-container td { padding: 10px; border-bottom: 1px solid #333; }
-        .table-container tr:hover { background-color: #333; cursor: help; }
+        .table-container tr:hover { background-color: #333; cursor: help; } 
         .table-container th:first-child, .table-container td:first-child { text-align: left; }
-
-        .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); }
-        .val-dnf { color: #ff5252 !important; }
-        .val-plus2 { color: #ffeb3b !important; }
-        .val-dim { color: #888; }
+        
+        .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); } 
+        .val-dnf { color: #ff5252 !important; } 
+        .val-plus2 { color: #ffeb3b !important; } 
+        .val-dim { color: #888; } 
 
         /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
@@ -88,14 +88,14 @@
         .scramble-text { font-size: 1.6rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
         .scramble-btn { background: #333; color: #aaa; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.85rem; font-weight: bold; }
         .scramble-btn:hover { background: #4CAF50; color: #fff; }
-
+        
         .timer-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
         .timer-display { font-size: clamp(5rem, 12vw, 15rem); font-weight: bold; font-family: monospace; transition: color 0.1s; }
-
+        
         /* Controls & Buttons */
         #penalty-controls { display: none; margin-top: 20px; gap: 10px; }
-        #usb-controls { margin-top: 20px; display: flex; justify-content: center; width: 100%; }
-
+        #usb-controls { margin-top: 20px; display: flex; justify-content: center; width: 100%; } 
+        
         .penalty-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 10px 20px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
         .penalty-btn:hover { background: #444; }
         .action-btn { padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.2s; font-size: 1rem;}
@@ -193,7 +193,7 @@
             </div>
 
             <div id="page-timer" class="page-view active">
-
+                
                 <div class="stats-sidebar">
                     <div class="session-selector-container">
                         <select id="sessionDropdown" class="session-dropdown" onchange="switchSession(this.value)"></select>
@@ -213,7 +213,7 @@
                         <div id="boxAo100" class="mini-stat-box"><span class="stat-label">Current Ao100</span><span id="statAo100" class="stat-value">--</span></div>
                         <div id="boxBestAo100" class="mini-stat-box"><span class="stat-label">Best Ao100</span><span id="statBestAo100" class="stat-value" style="color: #00e5ff;">--</span></div>
                     </div>
-
+                    
                     <div class="table-container">
                         <table>
                             <thead>
@@ -239,16 +239,16 @@
                             <button onclick="nextScramble(event)" class="scramble-btn" title="Next Scramble">Next ⟳</button>
                         </div>
                     </div>
-
+                    
                     <div class="timer-wrapper">
                         <div id="mainTimerText" class="timer-display">0.000</div>
-
+                        
                         <div id="usb-controls">
                             <button id="btnConnectSerial" class="action-btn action-btn-green" onclick="connectWebSerial()" style="display: none;">
                                 🔌 Connect to Ghost USB
                             </button>
                         </div>
-
+                        
                         <div id="penalty-controls">
                             <button class="penalty-btn" onclick="applyPenalty('OK')">OK</button>
                             <button class="penalty-btn" id="btnPenaltyPlus" onclick="applyPenalty('+2')">+2</button>
@@ -262,15 +262,15 @@
             <div id="page-settings" class="page-view">
                 <h2>Application Settings</h2>
                 <div style="background: #1e1e1e; padding: 20px 30px; border-radius: 8px; max-width: 600px;">
-
+                    
                     <h3 style="color: #4CAF50; margin-top: 0; margin-bottom: 15px;">Software Engine</h3>
 
                     <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" id="chkInspection" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> Enable WCA Inspection Phase
                     </label>
-
+                    
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
-
+                    
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Inspection Duration (seconds):</span>
                         <input type="number" id="valInspectionTime" min="1" max="60" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
@@ -283,7 +283,7 @@
                         <span>Timer Hold Delay (seconds):</span>
                         <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
-
+                    
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
@@ -304,7 +304,7 @@
                     </div>
 
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
-
+                    
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
                         <span>Scramble Length (moves):</span>
                         <input type="number" id="valScrambleLen" min="1" max="50" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
@@ -326,7 +326,7 @@
                         <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
                         <h3 style="color: #4CAF50; margin-bottom: 15px;">Hardware & Board Settings</h3>
                         <label style="display:flex; align-items:center; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
-                            <input type="checkbox" id="chkBatterySaver" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()">
+                            <input type="checkbox" id="chkBatterySaver" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> 
                             <span id="lblBatterySaver">Enable Battery Saver Mode</span>
                         </label>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
@@ -342,7 +342,7 @@
                 <h2>Data & Export</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 800px;">
                     <p style="color: #aaa; margin-bottom: 20px;">Backup your data to a CSV file, or load times from another device/csTimer.</p>
-
+                    
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px;">
                         <input type="file" id="importFileInput" accept=".csv, .txt" style="display: none;" onchange="importData(event)">
                         <button class="action-btn" onclick="document.getElementById('importFileInput').click()">📥 Import (ArchSense/csTimer)</button>
@@ -390,7 +390,7 @@
         let currentDevice = '';
         let serialPort = null;
         let serialReader = null;
-
+        
         let appSettings = {
             inspectionEnabled: true,
             inspectionTime: 15,
@@ -402,10 +402,10 @@
             plusPenalty: 2000,
             timerDecimals: 3,
             timerUpdateRate: 10,
-            batterySaver: true,
-            sleepTimeout: 30
+            batterySaver: true,   
+            sleepTimeout: 30      
         };
-
+        
         let sessions = [];
         let activeSessionId = null;
 
@@ -413,7 +413,7 @@
         let scrambleHistory = [];
         let currentScrambleIndex = -1;
 
-        let timerState = 'idle';
+        let timerState = 'idle'; 
         let startTime = 0;
         let finalTimeMs = 0;
         let timerInterval;
@@ -439,7 +439,7 @@
         function loadSettings() {
             const saved = localStorage.getItem('archSenseSettings');
             if (saved) { appSettings = { ...appSettings, ...JSON.parse(saved) }; }
-
+            
             document.getElementById('chkInspection').checked = appSettings.inspectionEnabled;
             document.getElementById('valInspectionTime').value = appSettings.inspectionTime;
             document.getElementById('valInspGrace').value = appSettings.inspGrace;
@@ -464,10 +464,10 @@
 
         async function saveSettings() {
             let selectedMoves = Array.from(document.querySelectorAll('#scrambleMovesCheckboxes input:checked')).map(cb => cb.value);
-
+            
             if (selectedMoves.length < 2) {
                 alert("You must select at least 2 moves for the scramble generator to work.");
-                loadSettings();
+                loadSettings(); 
                 return;
             }
 
@@ -484,13 +484,13 @@
 
             appSettings.batterySaver = document.getElementById('chkBatterySaver').checked;
             appSettings.sleepTimeout = parseInt(document.getElementById('valSleepTimeout').value) || 30;
-
+            
             localStorage.setItem('archSenseSettings', JSON.stringify(appSettings));
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
-
+            
             document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
-            updateStatsUI();
-            generateScramble();
+            updateStatsUI(); 
+            generateScramble(); 
 
             // Send configuration to board if connected via USB
             if (serialPort && serialPort.writable) {
@@ -521,7 +521,7 @@
                     sessions = [{ id: Date.now(), name: "Session 1", solves: [] }];
                 }
                 activeSessionId = sessions[0].id;
-                persistDatabase();
+                persistDatabase(); 
             }
             updateSessionUI();
             updateStatsUI();
@@ -540,7 +540,7 @@
         function updateSessionUI() {
             const dropdown = document.getElementById('sessionDropdown');
             dropdown.innerHTML = '';
-
+            
             sessions.forEach(s => {
                 let opt = document.createElement('option');
                 opt.value = s.id;
@@ -568,7 +568,7 @@
             persistDatabase();
             updateSessionUI();
             updateStatsUI();
-            renderSessionManagerList();
+            renderSessionManagerList(); 
         }
 
         function clearCurrentSession() {
@@ -597,7 +597,7 @@
             sessions.forEach((s, index) => {
                 let row = document.createElement('div');
                 row.className = 'session-row';
-
+                
                 let upBtn = document.createElement('button');
                 upBtn.className = 'session-row-btn';
                 upBtn.innerText = '↑';
@@ -611,7 +611,7 @@
                 if (index === sessions.length - 1) { dnBtn.disabled = true; dnBtn.style.opacity = '0.3'; }
                 else dnBtn.onclick = () => moveSession(index, 1);
                 row.appendChild(dnBtn);
-
+                
                 let input = document.createElement('input');
                 input.type = 'text';
                 input.value = s.name;
@@ -629,7 +629,7 @@
                 let delBtn = document.createElement('button');
                 delBtn.className = 'session-row-btn del';
                 delBtn.innerText = '🗑️';
-                if (sessions.length === 1) delBtn.disabled = true;
+                if (sessions.length === 1) delBtn.disabled = true; 
                 else delBtn.onclick = () => deleteSession(s.id);
                 row.appendChild(delBtn);
 
@@ -640,9 +640,9 @@
         function renameSession(id, newName) {
             let s = sessions.find(x => x.id === id);
             if (s) {
-                s.name = newName;
+                s.name = newName; 
                 persistDatabase();
-                updateSessionUI();
+                updateSessionUI(); 
             }
         }
 
@@ -678,14 +678,14 @@
 
         function loadMainApp(deviceType) {
             currentDevice = deviceType;
-            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'block'; 
             let deviceName = deviceType === 'ghost' ? 'Arduino UNO (USB Serial)' : (deviceType === 'esp' ? 'ESP32-C3 (Bluetooth BLE)' : 'Keyboard Debug Mode');
             document.getElementById('activeDeviceDisplay').innerText = deviceName;
-
+            
             const usbBtn = document.getElementById('btnConnectSerial');
             const hwBlock = document.getElementById('hardwareSettingsBlock');
             const lblSaver = document.getElementById('lblBatterySaver');
-
+            
             if (currentDevice === 'ghost') {
                 if (!serialPort) usbBtn.style.display = 'inline-block';
                 if(hwBlock) hwBlock.style.display = 'block';
@@ -718,7 +718,7 @@
             const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
+            
             if (isAlreadyActive) {
                 document.getElementById('page-timer').classList.add('active');
                 document.getElementById('pageTitle').innerText = 'Main Timer';
@@ -735,7 +735,7 @@
         }
 
         // --- 4. HARDWARE LOGIC (WEB SERIAL & KEYBOARD) ---
-
+        
         async function connectWebSerial() {
             try {
                 if (!("serial" in navigator)) {
@@ -743,11 +743,11 @@
                     return;
                 }
                 serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 115200 });
-
+                await serialPort.open({ baudRate: 115200 }); 
+                
                 document.getElementById('btnConnectSerial').style.display = 'none';
-                saveSettings();
-
+                saveSettings(); 
+                
                 const textDecoder = new TextDecoderStream();
                 const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
                 serialReader = textDecoder.readable.getReader();
@@ -756,11 +756,11 @@
                 while (true) {
                     const { value, done } = await serialReader.read();
                     if (done) break;
-
+                    
                     buffer += value;
                     let lines = buffer.split('\n');
-                    buffer = lines.pop();
-
+                    buffer = lines.pop(); 
+                    
                     for (let line of lines) {
                         line = line.trim();
                         if (line === "DOWN") handlePadDown();
@@ -777,7 +777,7 @@
 
         document.addEventListener('keydown', (e) => {
             if (currentDevice !== 'keyboard' || e.code !== 'Space' || e.repeat) return;
-            e.preventDefault();
+            e.preventDefault(); 
             handlePadDown();
         });
 
@@ -790,34 +790,34 @@
         function handlePadDown() {
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
-
+                
                 if (appSettings.inspectionEnabled) {
                     timerState = 'inspecting_starting';
-                    setFocusMode(true);
-                    document.getElementById('mainTimerText').style.color = '#ff9800';
+                    setFocusMode(true); 
+                    document.getElementById('mainTimerText').style.color = '#ff9800'; 
                     document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString();
                 } else {
                     timerState = 'starting_hold';
                     activeInspectionPenalty = 'OK';
                     spaceHoldStart = Date.now();
-                    document.getElementById('mainTimerText').style.color = '#d32f2f';
-
+                    document.getElementById('mainTimerText').style.color = '#d32f2f'; 
+                    
                     holdInterval = setInterval(() => {
                         if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                             timerState = 'ready';
-                            document.getElementById('mainTimerText').style.color = '#4CAF50';
+                            document.getElementById('mainTimerText').style.color = '#4CAF50'; 
                             document.getElementById('mainTimerText').innerText = formatTime(0);
-                            setFocusMode(true);
+                            setFocusMode(true); 
                             clearInterval(holdInterval);
                         }
                     }, 50);
                 }
-            }
+            } 
             else if (timerState === 'inspecting') {
                 timerState = 'inspecting_holding';
                 spaceHoldStart = Date.now();
-                document.getElementById('mainTimerText').style.color = '#d32f2f';
-
+                document.getElementById('mainTimerText').style.color = '#d32f2f'; 
+                
                 holdInterval = setInterval(() => {
                     if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
                         timerState = 'ready';
@@ -827,7 +827,7 @@
                         clearInterval(holdInterval);
                     }
                 }, 50);
-            }
+            } 
             else if (timerState === 'running') { stopTimer(); }
         }
 
@@ -838,15 +838,15 @@
             } else if (timerState === 'inspecting_holding') {
                 clearInterval(holdInterval);
                 timerState = 'inspecting';
-                document.getElementById('mainTimerText').style.color = '#ff9800';
+                document.getElementById('mainTimerText').style.color = '#ff9800'; 
             } else if (timerState === 'starting_hold') {
                 clearInterval(holdInterval);
                 timerState = 'idle';
-                setFocusMode(false);
-                document.getElementById('mainTimerText').style.color = '#ffffff';
+                setFocusMode(false); 
+                document.getElementById('mainTimerText').style.color = '#ffffff'; 
             } else if (timerState === 'ready') {
-                clearInterval(holdInterval);
-                clearInterval(inspectionInterval);
+                clearInterval(holdInterval); 
+                clearInterval(inspectionInterval); 
                 startTimer();
             }
         }
@@ -854,15 +854,15 @@
         function startInspection() {
             inspectStartTime = Date.now();
             activeInspectionPenalty = 'OK';
-            document.getElementById('mainTimerText').style.color = '#ff9800';
-
+            document.getElementById('mainTimerText').style.color = '#ff9800'; 
+            
             inspectionInterval = setInterval(() => {
                 let elapsed = Date.now() - inspectStartTime;
                 let remaining = appSettings.inspectionTime - Math.floor(elapsed / 1000);
-
+                
                 if (remaining <= 0 && remaining > -appSettings.inspGrace) activeInspectionPenalty = '+2';
                 else if (remaining <= -appSettings.inspGrace) activeInspectionPenalty = 'DNF';
-
+                
                 if (timerState !== 'ready') {
                     let displayStr = "DNF";
                     if (remaining > 0) displayStr = remaining;
@@ -889,7 +889,7 @@
             timerState = 'stopped';
             clearInterval(timerInterval);
             finalTimeMs = Date.now() - startTime;
-            setFocusMode(false);
+            setFocusMode(false); 
             saveSolve(activeInspectionPenalty);
         }
 
@@ -899,7 +899,7 @@
         function saveSolve(autoPenalty = 'OK') {
             getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
-            persistDatabase();
+            persistDatabase(); 
             applyVisualPenalty(autoPenalty, finalTimeMs);
             updateSessionUI();
             updateStatsUI();
@@ -910,7 +910,7 @@
             let solves = getActiveSession().solves;
             if(solves.length === 0) return;
             solves[solves.length - 1].penalty = type;
-            persistDatabase();
+            persistDatabase(); 
             applyVisualPenalty(type, solves[solves.length - 1].timeMs);
             updateStatsUI();
         }
@@ -918,7 +918,7 @@
         function applyVisualPenalty(type, rawTimeMs) {
             let displayStr = formatTime(rawTimeMs);
             document.getElementById('mainTimerText').style.color = '#ffffff';
-            if (type === 'DNF') { displayStr = 'DNF'; document.getElementById('mainTimerText').style.color = '#d32f2f'; }
+            if (type === 'DNF') { displayStr = 'DNF'; document.getElementById('mainTimerText').style.color = '#d32f2f'; } 
             else if (type === '+2') { displayStr = formatTime(rawTimeMs + appSettings.plusPenalty) + '+'; document.getElementById('mainTimerText').style.color = '#ffeb3b'; }
             document.getElementById('mainTimerText').innerText = displayStr;
         }
@@ -927,7 +927,7 @@
             let solves = getActiveSession().solves;
             if(solves.length === 0) return;
             solves.pop();
-            persistDatabase();
+            persistDatabase(); 
             document.getElementById('penalty-controls').style.display = 'none';
             document.getElementById('mainTimerText').innerText = formatTime(0);
             document.getElementById('mainTimerText').style.color = '#ffffff';
@@ -947,7 +947,7 @@
             times.sort((a, b) => a - b);
             let trimCount = Math.ceil(slice.length * (appSettings.trimPct / 100));
             let countedTimes = times.slice(trimCount, slice.length - trimCount);
-            if (countedTimes.includes(Infinity)) return Infinity;
+            if (countedTimes.includes(Infinity)) return Infinity; 
             let sum = countedTimes.reduce((a, b) => a + b, 0);
             return sum / countedTimes.length;
         }
@@ -968,7 +968,7 @@
             let solves = getActiveSession().solves;
             let tbody = document.getElementById('solveTableBody');
             tbody.innerHTML = '';
-
+            
             if(solves.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="color: #aaa; text-align:center; padding-top:20px;">No solves yet</td></tr>';
                 setUIStat('Solves', '0/0', true);
@@ -989,7 +989,7 @@
             for (let i = 0; i < solves.length; i++) {
                 let s = solves[i];
                 let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
-
+                
                 let isPbSingle = false;
                 if (actualMs !== Infinity && actualMs <= pbSingle) { pbSingle = actualMs; isPbSingle = true; }
 
@@ -1013,11 +1013,11 @@
             for(let i = solves.length - 1; i >= 0; i--) {
                 let s = solves[i];
                 let stats = runningStats[i];
-
+                
                 let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
                 if (s.penalty === '+2') displaySingle += '+';
                 if (s.penalty !== 'DNF') validTimes.push(stats.single);
-
+                
                 let colorSingle = stats.isPbSingle ? 'val-pb' : ((s.penalty === 'DNF' || s.penalty === '+2') ? (s.penalty==='DNF' ? 'val-dnf' : 'val-plus2') : '');
 
                 let displayAo5 = stats.ao5 === null ? '-' : (stats.ao5 === Infinity ? 'DNF' : formatTime(stats.ao5));
@@ -1113,9 +1113,9 @@
 
             let cstExport = { properties: { sessionData: {} } };
             let sIndex = 1;
-
+            
             sessions.forEach(s => {
-                if (s.solves.length === 0) return;
+                if (s.solves.length === 0) return; 
 
                 let sKey = "session" + sIndex;
                 cstExport.properties.sessionData[sIndex.toString()] = { name: s.name, opt: {} };
@@ -1172,7 +1172,7 @@
 
                         for (let key in cstData) {
                             if (key.startsWith('session') && Array.isArray(cstData[key])) {
-                                if (cstData[key].length === 0) continue;
+                                if (cstData[key].length === 0) continue; 
 
                                 let sName = sessionNames[key] || `csTimer ${key}`;
                                 let archSolves = [];
@@ -1180,7 +1180,7 @@
                                 cstData[key].forEach(solve => {
                                     let penState = 'OK';
                                     if (solve[0][0] === -1) penState = 'DNF';
-                                    else if (solve[0][0] > 0) penState = '+2';
+                                    else if (solve[0][0] > 0) penState = '+2'; 
 
                                     archSolves.push({
                                         timeMs: solve[0][1],
@@ -1210,14 +1210,14 @@
                         alert("Invalid csTimer .txt format.");
                         console.error(err);
                     }
-                }
+                } 
                 else if (fileName.endsWith('.csv')) {
                     const rows = text.split('\n');
                     const headerCols = rows[0].split(',');
                     const isAllSessionsFormat = headerCols[0].trim() === "Session";
 
                     if (isAllSessionsFormat) {
-                        sessions = [];
+                        sessions = []; 
                         for (let i = 1; i < rows.length; i++) {
                             const row = rows[i].trim();
                             if (!row) continue;
@@ -1252,7 +1252,7 @@
                     alert(`Successfully imported CSV!`);
                 }
 
-                document.getElementById('importFileInput').value = '';
+                document.getElementById('importFileInput').value = ''; 
                 openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
             };
             reader.readAsText(file);
@@ -1266,14 +1266,14 @@
             const modifiers = ['', "'", '2'];
             let scramble = [];
             let lastFace = -1;
-
+            
             for (let i = 0; i < appSettings.scrambleLen; i++) {
                 let currentFace;
                 do { currentFace = Math.floor(Math.random() * faces.length); } while (currentFace === lastFace);
                 lastFace = currentFace;
                 scramble.push(faces[currentFace] + modifiers[Math.floor(Math.random() * modifiers.length)]);
             }
-
+            
             let scr = scramble.join('  ');
 
             // Handle branching timelines (If they went back in history and generated a new one, chop off the future)
