@@ -59,7 +59,7 @@
         .device-card p { margin: 0; color: #aaa; font-size: 0.9rem; }
 
         /* Main App Interface */
-        #mainApp { display: none; height: 100vh; position: relative; }
+        #mainApp { display: none; height: 100vh; position: relative; display: flex; flex-direction: column; }
         
         /* Top Navigation Bar */
         .top-bar {
@@ -67,6 +67,8 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 30px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
         }
         
         .menu-btn {
@@ -81,27 +83,26 @@
         }
         .menu-btn:hover { background: #4CAF50; }
 
-        /* Sliding Side Panel (Moved to Left) */
+        /* Sliding Side Navigation Panel */
         #sidePanel {
             position: fixed;
             top: 0;
-            left: -350px; /* Hidden off-screen to the LEFT */
-            width: 350px;
+            left: -300px; /* Hidden off-screen to the LEFT */
+            width: 300px;
             height: 100%;
-            background-color: #1a1a1a;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.5); /* Shadow shifted to right side of panel */
-            transition: left 0.3s ease-in-out; /* Transition changed to animate 'left' property */
+            background-color: #1e1e1e;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.8);
+            transition: left 0.3s ease-in-out;
             z-index: 500;
             display: flex;
             flex-direction: column;
         }
 
-        /* Class added by JS to slide the panel in */
         #sidePanel.open { left: 0; }
 
         .panel-header {
             padding: 20px;
-            background: #222;
+            background: #151515;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -117,53 +118,51 @@
         }
         .close-btn:hover { color: #fff; }
 
-        /* Main Panel Layout: Flex row to put vertical tabs next to content */
-        .panel-body {
+        /* Navigation Links inside Panel */
+        .nav-menu {
             display: flex;
-            flex-grow: 1;
-            overflow: hidden; /* Keep content contained within panel height */
+            flex-direction: column;
+            padding: 10px 0;
         }
-
-        /* Tab Buttons inside Panel (Stacked Vertically) */
-        .tab-menu {
-            display: flex;
-            flex-direction: column; /* Stack vertically */
-            background: #1e1e1e;
-            width: 100px; /* Fixed width for the vertical tab bar */
-            border-right: 1px solid #333; /* Line separating tabs from content */
-        }
-        .tab-btn {
-            background: inherit;
-            color: #aaa;
+        
+        .nav-btn {
+            background: transparent;
+            color: #ccc;
             border: none;
-            border-left: 3px solid transparent; /* Highlight moves to the left edge */
-            padding: 20px 10px;
+            border-left: 4px solid transparent;
+            padding: 20px 30px;
             cursor: pointer;
-            font-size: 0.95rem;
-            text-align: left; /* Align text nicely */
+            font-size: 1.1rem;
+            text-align: left;
             transition: all 0.2s;
         }
-        .tab-btn:hover { color: #fff; background: #2a2a2a; }
         
-        /* Active state styling for vertical tabs */
-        .tab-btn.active { 
-            color: #4CAF50; 
-            border-left: 3px solid #4CAF50; 
-            background-color: #222; /* Slight background shift to show connection to content area */
-            font-weight: bold; 
+        .nav-btn:hover { background: #2a2a2a; color: #fff; }
+        
+        .nav-btn.active {
+            color: #4CAF50;
+            border-left: 4px solid #4CAF50;
+            background-color: #222;
+            font-weight: bold;
         }
 
-        /* Tab Content Areas */
-        .tab-content {
-            padding: 20px;
-            display: none; /* All hidden by default */
-            flex-grow: 1; /* Takes up remaining space next to tabs */
+        /* --- THE PAGES (Main Content Areas) --- */
+        .page-view {
+            display: none; /* All pages hidden by default */
+            flex-grow: 1;
+            padding: 40px;
             overflow-y: auto;
-            background-color: #1a1a1a;
         }
         
-        /* Debug Reset Button */
-        .reset-btn { width: 100%; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;}
+        /* The active page will use flex to center content if needed */
+        .page-view.active { display: block; }
+
+        /* Timer Page Specific Styles */
+        #page-timer { text-align: center; }
+        .timer-display { font-size: 8rem; font-weight: bold; margin-top: 10vh; font-family: monospace; }
+        
+        /* Utility */
+        .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;}
         .reset-btn:hover { background: #b71c1c; }
     </style>
 </head>
@@ -196,57 +195,85 @@
         </div>
     </div>
 
-    <div id="mainApp">
+    <div id="mainApp" style="display:none;">
+        
         <div class="top-bar">
             <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
-            <div>
-                <span style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">ArchSense</span>
-            </div>
-        </div>
-
-        <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
-            <p style="color: #555;">(Timer Display Area)</p>
+            <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">Timer</span>
         </div>
 
         <div id="sidePanel">
             <div class="panel-header">
-                <h3 style="margin: 0;">Dashboard</h3>
+                <h3 style="margin: 0;">ArchSense</h3>
                 <button class="close-btn" onclick="togglePanel()">✖</button>
             </div>
             
-            <div class="panel-body">
-                <div class="tab-menu">
-                    <button class="tab-btn active" onclick="openTab('tab-timer')">Timer</button>
-                    <button class="tab-btn" onclick="openTab('tab-settings')">Settings</button>
-                    <button class="tab-btn" onclick="openTab('tab-stats')">Stats</button>
-                    <button class="tab-btn" onclick="openTab('tab-devices')">Devices</button>
-                </div>
-
-                <div id="tab-timer" class="tab-content" style="display: block;">
-                    <h4 style="margin-top:0;">Timer Controls</h4>
-                    <p style="color: #aaa; font-size: 0.9rem;">Solve times and penalties will appear here.</p>
-                </div>
-
-                <div id="tab-settings" class="tab-content">
-                    <h4 style="margin-top:0;">Settings</h4>
-                    <p style="color: #aaa; font-size: 0.9rem;">Options for inspection and modes.</p>
-                    <label style="display:block; margin-bottom:10px;"><input type="checkbox"> WCA Inspection</label>
-                    <label style="display:block;"><input type="checkbox"> 4-Touch Mode</label>
-                </div>
-
-                <div id="tab-stats" class="tab-content">
-                    <h4 style="margin-top:0;">Statistics</h4>
-                    <p style="color: #aaa; font-size: 0.9rem;">Ao5: --<br>Ao12: --</p>
-                </div>
-
-                <div id="tab-devices" class="tab-content">
-                    <h4 style="margin-top:0;">Hardware</h4>
-                    <p style="margin-bottom:5px;">Active:</p>
-                    <strong id="activeDevice" style="color: #4CAF50;">None</strong>
-                    <button class="reset-btn" onclick="resetSetup()">Reset Setup</button>
-                </div>
+            <div class="nav-menu">
+                <button class="nav-btn active" onclick="openPage('page-timer', 'Timer', this)">Timer</button>
+                <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">Settings</button>
+                <button class="nav-btn" onclick="openPage('page-stats', 'Statistics', this)">Stats</button>
+                <button class="nav-btn" onclick="openPage('page-devices', 'Device Manager', this)">Devices</button>
             </div>
         </div>
+
+        <div id="page-timer" class="page-view active">
+            <div class="timer-display">0.000</div>
+            <p style="color: #666; font-size: 1.2rem;">Waiting for connection...</p>
+        </div>
+
+        <div id="page-settings" class="page-view">
+            <h2>Application Settings</h2>
+            <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
+                </label>
+                <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode (Require lifting hands)
+                </label>
+                <label style="display:block; font-size: 1.1rem;">
+                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable Voice Alerts
+                </label>
+            </div>
+        </div>
+
+        <div id="page-stats" class="page-view">
+            <h2>Session Statistics</h2>
+            <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
+                    <h3 style="margin-top: 0; color: #aaa;">Current Ao5</h3>
+                    <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                </div>
+                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
+                    <h3 style="margin-top: 0; color: #aaa;">Current Ao12</h3>
+                    <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                </div>
+            </div>
+            
+            <h3>Solve History</h3>
+            <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                <tr style="border-bottom: 2px solid #333;">
+                    <th style="padding: 10px;">#</th>
+                    <th style="padding: 10px;">Time</th>
+                    <th style="padding: 10px;">Penalty</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; color: #aaa;">No solves yet</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="page-devices" class="page-view">
+            <h2>Device Manager</h2>
+            <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                <p>Currently configured for:</p>
+                <h3 id="activeDevice" style="color: #4CAF50; font-size: 1.8rem; margin: 10px 0;">None</h3>
+                <p style="color: #aaa; margin-bottom: 20px;">To connect a different timer architecture (e.g. switching from the Ghost Uno to the Pro ESP32), reset your setup.</p>
+                <button class="reset-btn" onclick="resetSetup()">Reset Hardware Choice</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -267,8 +294,8 @@
         }
 
         function loadMainApp(deviceType) {
-            document.getElementById('mainApp').style.display = 'block';
-            const deviceName = (deviceType === 'ghost') ? 'Arduino UNO (USB)' : 'ESP32 (Bluetooth)';
+            document.getElementById('mainApp').style.display = 'flex'; // Changed to flex for proper layout
+            const deviceName = (deviceType === 'ghost') ? 'Arduino UNO (USB Serial)' : 'ESP32 (Bluetooth BLE)';
             document.getElementById('activeDevice').innerText = deviceName;
         }
 
@@ -283,20 +310,30 @@
             panel.classList.toggle('open');
         }
 
-        // --- 3. TAB LOGIC ---
-        function openTab(tabId) {
-            const contents = document.getElementsByClassName('tab-content');
-            for (let i = 0; i < contents.length; i++) {
-                contents[i].style.display = 'none';
+        // --- 3. PAGE NAVIGATION LOGIC ---
+        // Takes the ID of the page to show, the title for the top bar, and the button clicked
+        function openPage(pageId, pageTitleText, btnElement) {
+            // 1. Hide all pages
+            const pages = document.getElementsByClassName('page-view');
+            for (let i = 0; i < pages.length; i++) {
+                pages[i].classList.remove('active');
             }
 
-            const buttons = document.getElementsByClassName('tab-btn');
+            // 2. Remove 'active' highlight from all menu buttons
+            const buttons = document.getElementsByClassName('nav-btn');
             for (let i = 0; i < buttons.length; i++) {
                 buttons[i].classList.remove('active');
             }
 
-            document.getElementById(tabId).style.display = 'block';
-            event.currentTarget.classList.add('active');
+            // 3. Show the selected page and highlight the button
+            document.getElementById(pageId).classList.add('active');
+            btnElement.classList.add('active');
+
+            // 4. Update the Top Bar title
+            document.getElementById('pageTitle').innerText = pageTitleText;
+
+            // 5. Automatically close the side menu so the user can see the new page
+            document.getElementById('sidePanel').classList.remove('open');
         }
     </script>
 </body>
