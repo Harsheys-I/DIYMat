@@ -11,7 +11,7 @@
             background-color: #121212;
             color: #ffffff;
             margin: 0;
-            overflow: hidden; /* Prevents whole-page scrolling */
+            overflow: hidden; 
             user-select: none;
         }
 
@@ -42,7 +42,7 @@
         /* Main App Interface */
         #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
         
-        /* Sliding Navigation Panel */
+        /* Sliding Panel */
         #sidePanel { position: fixed; top: 0; left: -300px; width: 300px; height: 100%; background-color: #1e1e1e; border-right: 1px solid #333; transition: left 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
         #sidePanel.open { left: 0; }
         .panel-header { padding: 20px; background: #151515; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #333; }
@@ -61,19 +61,13 @@
         .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
 
-        /* ========================================= */
-        /* NEW SPLIT-SCREEN TIMER LAYOUT             */
-        /* ========================================= */
+        /* SPLIT-SCREEN TIMER LAYOUT */
         #page-timer.active { display: flex; padding: 0; overflow: hidden; }
-
-        /* Left Side: Stats Sidebar */
         .stats-sidebar { width: 280px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
         .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .mini-stat-box { background: #252525; padding: 10px; border-radius: 6px; text-align: center; }
         .stat-label { display: block; color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
         .stat-value { font-size: 1.4rem; font-weight: bold; color: #fff; }
-
-        /* Scrollable Table Container */
         .table-container { flex-grow: 1; overflow-y: auto; background: #252525; border-radius: 6px; padding: 0 5px; }
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-track { background: #252525; }
@@ -82,7 +76,6 @@
         .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; }
         .table-container td { padding: 10px; border-bottom: 1px solid #333; }
 
-        /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
         .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: #1e1e1e; border-radius: 8px; cursor: pointer; }
         .scramble-text { font-size: 1.6rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
@@ -90,18 +83,20 @@
         .timer-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
         .timer-display { font-size: clamp(5rem, 12vw, 15rem); font-weight: bold; font-family: monospace; transition: color 0.1s; }
         
-        /* Penalty Controls */
         #penalty-controls { display: none; margin-top: 20px; gap: 10px; }
         .penalty-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 10px 20px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
         .penalty-btn:hover { background: #444; }
-
-        /* General Buttons */
         .action-btn { padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.2s; font-size: 1rem;}
         .action-btn:hover { background: #555; }
         .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;}
         .reset-btn:hover { background: #b71c1c; }
 
-        /* Mobile Adjustments */
+        /* Dynamic Stats Blocks */
+        .stat-box { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; display: none; }
+        .stat-box.visible { display: block; }
+        .stat-title { margin-top: 0; color: #aaa; font-size: 1.1rem; margin-bottom: 5px; }
+        .stat-value { font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff; }
+
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
             .stats-sidebar { width: auto; border-right: none; border-bottom: 1px solid #333; max-height: 40vh; }
@@ -126,7 +121,7 @@
                     <h3>The Pro</h3><p>ESP32-C3 (Bluetooth)</p>
                 </div>
                 <div class="device-card" onclick="selectDevice('keyboard')">
-                    <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,19 22,18.11 22,17V7C22,5.89 21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
+                    <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
                     <h3>Keyboard</h3><p>Debug Mode (Spacebar)</p>
                 </div>
             </div>
@@ -137,6 +132,7 @@
         <div id="sidePanel">
             <div class="panel-header"><h3 style="margin: 0; text-align: center; width: 100%; color: #fff; font-size: 1.5rem; letter-spacing: 1px;">ArchSense</h3></div>
             <div class="nav-menu">
+                <button class="nav-btn" onclick="openPage('page-timer', 'Main Timer', this)">⏱️ Timer</button>
                 <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">⚙️ Settings</button>
                 <button class="nav-btn" onclick="openPage('page-data', 'Session Data & Export', this)">📁 Data & Export</button>
                 <button class="nav-btn" onclick="openPage('page-devices', 'Device Manager', this)">🔌 Devices</button>
@@ -150,35 +146,25 @@
             </div>
 
             <div id="page-timer" class="page-view active">
-                
                 <div class="stats-sidebar">
                     <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center;">Session 1</h2>
-                    
                     <div class="mini-stats-grid">
                         <div class="mini-stat-box"><span class="stat-label">Ao5</span><span id="statAo5" class="stat-value">--</span></div>
                         <div class="mini-stat-box"><span class="stat-label">Ao12</span><span id="statAo12" class="stat-value">--</span></div>
                         <div class="mini-stat-box"><span class="stat-label">Ao100</span><span id="statAo100" class="stat-value">--</span></div>
                         <div class="mini-stat-box"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
                     </div>
-
                     <div class="table-container">
-                        <table>
-                            <thead><tr><th>#</th><th>Time</th><th>Pen</th></tr></thead>
-                            <tbody id="solveTableBody">
-                                </tbody>
-                        </table>
+                        <table><thead><tr><th>#</th><th>Time</th><th>Pen</th></tr></thead><tbody id="solveTableBody"></tbody></table>
                     </div>
                 </div>
-
                 <div class="timer-area">
                     <div class="scramble-container" onclick="generateScramble()">
                         <p id="scrambleText" class="scramble-text">Loading...</p>
                         <div style="color: #666; font-size: 0.85rem; margin-top: 5px;">Click to generate new scramble</div>
                     </div>
-
                     <div class="timer-wrapper">
                         <div id="mainTimerText" class="timer-display">0.000</div>
-                        
                         <div id="penalty-controls">
                             <button class="penalty-btn" onclick="applyPenalty('OK')">OK</button>
                             <button class="penalty-btn" onclick="applyPenalty('+2')">+2</button>
@@ -205,13 +191,10 @@
                 <h2>Session Management</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
                     <p style="color: #aaa; margin-bottom: 20px;">Backup your session data to a CSV file, or load times from another device.</p>
-                    
                     <input type="file" id="importFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
                     <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="margin-right: 10px;">📥 Import CSV</button>
                     <button class="action-btn" onclick="exportCSV()">📤 Export CSV</button>
-                    
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
-                    
                     <h3 style="color: #d32f2f; margin-top: 0;">Danger Zone</h3>
                     <p style="color: #aaa; margin-bottom: 20px;">Wipe all solves and start a fresh session.</p>
                     <button class="reset-btn" onclick="startNewSession()">🗑️ Clear Session</button>
@@ -223,7 +206,6 @@
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
                     <p>Currently configured for:</p>
                     <h3 id="activeDeviceDisplay" style="color: #4CAF50; font-size: 1.8rem; margin: 10px 0;">None</h3>
-                    <p style="color: #aaa; margin-bottom: 20px;">To connect a different timer architecture, reset your setup.</p>
                     <button class="reset-btn" onclick="resetSetup()">Reset Hardware Choice</button>
                 </div>
             </div>
@@ -237,6 +219,7 @@
         let solves = [];
         let sessionCount = 1;
         
+        // Timer States: idle, inspecting_starting, inspecting, inspecting_holding, starting_hold, ready, running, stopped
         let timerState = 'idle'; 
         let startTime = 0;
         let finalTimeMs = 0;
@@ -293,7 +276,6 @@
             location.reload();
         }
 
-        // --- 2. UI NAVIGATION LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
@@ -304,18 +286,11 @@
         }
 
         function openPage(pageId, pageTitleText, btnElement) {
-            const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            
-            if (isAlreadyActive) {
-                document.getElementById('page-timer').classList.add('active');
-                document.getElementById('pageTitle').innerText = 'Main Timer';
-            } else {
-                document.getElementById(pageId).classList.add('active');
-                btnElement.classList.add('active');
-                document.getElementById('pageTitle').innerText = pageTitleText;
-            }
+            document.getElementById(pageId).classList.add('active');
+            btnElement.classList.add('active');
+            document.getElementById('pageTitle').innerText = pageTitleText;
         }
 
         // --- 3. KEYBOARD TIMER LOGIC ---
@@ -328,21 +303,34 @@
 
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
+                
                 if (useInspection) {
                     timerState = 'inspecting_starting';
                     document.getElementById('mainTimerText').style.color = '#ff9800'; 
                     document.getElementById('mainTimerText').innerText = "15";
                 } else {
-                    timerState = 'ready';
-                    document.getElementById('mainTimerText').style.color = '#4CAF50'; 
+                    // NEW: Keep previous time on screen, just turn it red.
+                    timerState = 'starting_hold';
                     activeInspectionPenalty = 'OK';
+                    spaceHoldStart = Date.now();
+                    document.getElementById('mainTimerText').style.color = '#d32f2f'; // Turns Red initially
+                    
+                    holdInterval = setInterval(() => {
+                        if (Date.now() - spaceHoldStart > 600) {
+                            timerState = 'ready';
+                            document.getElementById('mainTimerText').style.color = '#4CAF50'; // Turns Green
+                            document.getElementById('mainTimerText').innerText = '0.000'; // Now resets to 0.000
+                            clearInterval(holdInterval);
+                        }
+                    }, 50);
                 }
             } 
             else if (timerState === 'inspecting') {
                 timerState = 'inspecting_holding';
                 spaceHoldStart = Date.now();
-                document.getElementById('mainTimerText').style.color = '#ffffff'; 
-                document.getElementById('mainTimerText').innerText = '- - -';
+                // Instead of - - -, turn current countdown red
+                document.getElementById('mainTimerText').style.color = '#d32f2f'; 
+                
                 holdInterval = setInterval(() => {
                     if (Date.now() - spaceHoldStart > 600) {
                         timerState = 'ready';
@@ -358,12 +346,18 @@
         document.addEventListener('keyup', (e) => {
             if (currentDevice !== 'keyboard' || e.code !== 'Space') return;
             e.preventDefault();
+            
             if (timerState === 'inspecting_starting') {
                 timerState = 'inspecting';
                 startInspection();
             } else if (timerState === 'inspecting_holding') {
                 clearInterval(holdInterval);
                 timerState = 'inspecting';
+                document.getElementById('mainTimerText').style.color = '#ff9800'; // Reverts to orange
+            } else if (timerState === 'starting_hold') {
+                clearInterval(holdInterval);
+                timerState = 'idle';
+                document.getElementById('mainTimerText').style.color = '#ffffff'; // Reverts to white
             } else if (timerState === 'ready') {
                 clearInterval(holdInterval); 
                 clearInterval(inspectionInterval); 
@@ -375,16 +369,28 @@
             inspectStartTime = Date.now();
             activeInspectionPenalty = 'OK';
             document.getElementById('mainTimerText').style.color = '#ff9800'; 
+            
             inspectionInterval = setInterval(() => {
-                if (timerState === 'inspecting_holding') return;
                 let elapsed = Date.now() - inspectStartTime;
                 let remaining = 15 - Math.floor(elapsed / 1000);
+                
                 if (remaining <= 0 && remaining > -2) activeInspectionPenalty = '+2';
                 else if (remaining <= -2) activeInspectionPenalty = 'DNF';
-                if (timerState === 'inspecting') {
-                    if (remaining > 0) { document.getElementById('mainTimerText').innerText = remaining; document.getElementById('mainTimerText').style.color = '#ff9800'; } 
-                    else if (remaining <= 0 && remaining > -2) { document.getElementById('mainTimerText').innerText = "+2"; document.getElementById('mainTimerText').style.color = '#d32f2f'; } 
-                    else { document.getElementById('mainTimerText').innerText = "DNF"; document.getElementById('mainTimerText').style.color = '#d32f2f'; }
+                
+                // Only update the screen text if we are NOT in the green 'ready' state
+                if (timerState !== 'ready') {
+                    // Decide what string to show based on the rules
+                    let displayStr = "DNF";
+                    if (remaining > 0) displayStr = remaining;
+                    else if (remaining <= 0 && remaining > -2) displayStr = "+2";
+
+                    document.getElementById('mainTimerText').innerText = displayStr;
+
+                    // Only overwrite colors if the user IS NOT holding the spacebar (red state)
+                    if (timerState === 'inspecting') {
+                        if (remaining > 0) document.getElementById('mainTimerText').style.color = '#ff9800';
+                        else document.getElementById('mainTimerText').style.color = '#d32f2f';
+                    }
                 }
             }, 100);
         }
@@ -405,7 +411,6 @@
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
-        // --- 4. DATA, PENALTY, & AVERAGES LOGIC ---
         function saveSolve(autoPenalty = 'OK') {
             solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
@@ -454,12 +459,7 @@
                 timerState = 'idle';
                 updateStatsUI();
                 generateScramble();
-                
-                // Return to timer screen automatically
-                document.getElementById('page-data').classList.remove('active');
-                document.getElementById('page-timer').classList.add('active');
-                document.getElementById('pageTitle').innerText = 'Main Timer';
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
             }
         }
 
@@ -505,7 +505,6 @@
                 if(s.penalty !== 'DNF') validTimes.push(actualMs);
 
                 let tr = document.createElement('tr');
-                // Removed the scramble from the visual UI column to save space, but kept it in memory for CSV export
                 tr.innerHTML = `<td style="color:#aaa;">${i + 1}</td><td style="font-weight:bold; color:${color}">${displayTime}</td><td style="color:${s.penalty==='OK'?'#888':'#fff'}">${s.penalty==='OK'?'-':s.penalty}</td>`;
                 tbody.appendChild(tr);
             }
@@ -520,7 +519,6 @@
             document.getElementById('statAo100').innerText = calcWCAAverage(100) || '--';
         }
 
-        // --- 5. EXPORT / IMPORT CSV LOGIC ---
         function exportCSV() {
             if (solves.length === 0) { alert("No solves to export!"); return; }
             let csvContent = "Solve Number,Time (ms),Penalty,Scramble\n";
@@ -556,7 +554,6 @@
                 alert(`Successfully imported ${solves.length} solves!`);
                 document.getElementById('importFileInput').value = ''; 
                 
-                // Return to timer to see loaded stats
                 document.getElementById('page-data').classList.remove('active');
                 document.getElementById('page-timer').classList.add('active');
                 document.getElementById('pageTitle').innerText = 'Main Timer';
@@ -565,7 +562,6 @@
             reader.readAsText(file);
         }
 
-        // --- 6. SCRAMBLER ---
         function generateScramble() {
             const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
             const modifiers = ['', "'", '2'];
