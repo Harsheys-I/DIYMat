@@ -65,7 +65,7 @@
         #sidePanel {
             position: fixed;
             top: 0;
-            left: -300px; /* Hidden off-screen to the LEFT */
+            left: -300px;
             width: 300px;
             height: 100%;
             background-color: #1e1e1e;
@@ -82,7 +82,7 @@
             padding: 20px;
             background: #151515;
             display: flex;
-            justify-content: center; /* Centered since the close button is gone */
+            justify-content: center;
             align-items: center;
             border-bottom: 1px solid #333;
         }
@@ -113,7 +113,6 @@
             transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
         }
 
-        /* When panel opens, push it right and shrink the width */
         #mainContent.shifted {
             margin-left: 300px;
             width: calc(100% - 300px); 
@@ -138,12 +137,12 @@
             border-radius: 6px; 
             cursor: pointer; 
             transition: background 0.2s;
-            width: 100px; /* Fixed width prevents the button from jumping sizes when text changes */
+            width: 100px;
             text-align: center;
         }
         .menu-btn:hover { background: #4CAF50; }
 
-        /* The Pages (Main Content Areas) */
+        /* The Pages */
         .page-view {
             display: none; 
             flex-grow: 1;
@@ -153,13 +152,44 @@
         
         .page-view.active { display: block; }
 
-        /* Timer Page Specific Styles */
-        #page-timer { text-align: center; }
-        .timer-display { font-size: 10vw; font-weight: bold; margin-top: 10vh; font-family: monospace; transition: font-size 0.3s; }
+        /* --- NEW: csTimer Style Features --- */
         
-        /* Utility */
-        .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;}
+        /* Scramble Area */
+        .scramble-container {
+            text-align: center;
+            padding: 20px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .scramble-container:hover { background-color: #252525; }
+        .scramble-text {
+            font-size: 1.8rem;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 0;
+            letter-spacing: 2px;
+        }
+        .scramble-hint { color: #666; font-size: 0.85rem; margin-top: 5px;}
+
+        /* Timer Text */
+        #page-timer { text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .timer-display { font-size: 14vw; font-weight: bold; margin-top: 5vh; font-family: monospace; transition: font-size 0.3s; }
+        
+        /* Buttons */
+        .action-btn { padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background 0.2s;}
+        .action-btn:hover { background: #555; }
+        .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; }
         .reset-btn:hover { background: #b71c1c; }
+
+        /* Stats Table */
+        table { width: 100%; text-align: left; border-collapse: collapse; font-family: monospace; font-size: 1rem; }
+        th { padding: 15px 10px; color: #888; border-bottom: 2px solid #333; }
+        td { padding: 12px 10px; border-bottom: 1px solid #222; }
+        tr:hover { background-color: #1e1e1e; }
     </style>
 </head>
 <body>
@@ -195,13 +225,13 @@
         
         <div id="sidePanel">
             <div class="panel-header">
-                <h3 style="margin: 0; text-align: center; width: 100%;">ArchSense</h3>
-                </div>
+                <h3 style="margin: 0; text-align: center; width: 100%; color: #fff; font-size: 1.5rem; letter-spacing: 1px;">ArchSense</h3>
+            </div>
             
             <div class="nav-menu">
-                <button class="nav-btn active" onclick="openPage('page-timer', 'Timer', this)">Timer</button>
+                <button class="nav-btn active" onclick="openPage('page-timer', 'Main Timer', this)">Timer</button>
                 <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">Settings</button>
-                <button class="nav-btn" onclick="openPage('page-stats', 'Statistics', this)">Stats</button>
+                <button class="nav-btn" onclick="openPage('page-stats', 'Session Data', this)">Stats</button>
                 <button class="nav-btn" onclick="openPage('page-devices', 'Device Manager', this)">Devices</button>
             </div>
         </div>
@@ -210,55 +240,77 @@
             
             <div class="top-bar">
                 <button id="mainToggleBtn" class="menu-btn" onclick="togglePanel()">☰ Menu</button>
-                <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">Timer</span>
+                <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">Main Timer</span>
             </div>
 
             <div id="page-timer" class="page-view active">
+                <div class="scramble-container" onclick="generateScramble()">
+                    <p id="scrambleText" class="scramble-text">Loading...</p>
+                    <div class="scramble-hint">Click to generate next scramble</div>
+                </div>
+
                 <div class="timer-display">0.000</div>
-                <p style="color: #666; font-size: 1.2rem;">Waiting for connection...</p>
+                <p style="color: #666; font-size: 1.2rem; margin-top: 0;">UI Shell Mode (Offline)</p>
             </div>
 
             <div id="page-settings" class="page-view">
                 <h2>Application Settings</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
-                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
                     </label>
-                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode (Require lifting hands)
                     </label>
-                    <label style="display:block; font-size: 1.1rem;">
+                    <label style="display:block; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable Voice Alerts
                     </label>
                 </div>
             </div>
 
             <div id="page-stats" class="page-view">
-                <h2>Session Statistics</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>Session 1 Statistics</h2>
+                    <div>
+                        <button class="action-btn" style="margin-right: 10px;">Import Session (.csv)</button>
+                        <button class="action-btn">Export Data</button>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 20px; margin-bottom: 30px;">
                     <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
                         <h3 style="margin-top: 0; color: #aaa;">Current Ao5</h3>
-                        <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                        <p style="font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff;">--</p>
                     </div>
                     <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
                         <h3 style="margin-top: 0; color: #aaa;">Current Ao12</h3>
-                        <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                        <p style="font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff;">--</p>
                     </div>
                 </div>
                 
                 <h3>Solve History</h3>
-                <table style="width: 100%; text-align: left; border-collapse: collapse;">
-                    <tr style="border-bottom: 2px solid #333;">
-                        <th style="padding: 10px;">#</th>
-                        <th style="padding: 10px;">Time</th>
-                        <th style="padding: 10px;">Penalty</th>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; color: #aaa;">No solves yet</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </table>
+                <div style="background: #1e1e1e; border-radius: 8px; padding: 10px;">
+                    <table>
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 15%;">Time</th>
+                            <th style="width: 10%;">Penalty</th>
+                            <th style="width: 70%;">Scramble Used</th>
+                        </tr>
+                        <tr>
+                            <td style="color: #aaa;">1</td>
+                            <td style="font-weight: bold; color: #4CAF50;">12.45</td>
+                            <td>-</td>
+                            <td style="color: #888;">U R2 F' B D L2 U' B2 D2 F2 L2 R2 U2 B2 D2 B2 F2 R2 U2 F2</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #aaa;">2</td>
+                            <td style="font-weight: bold; color: #fff;">14.12</td>
+                            <td style="color: #d32f2f;">+2</td>
+                            <td style="color: #888;">R2 D2 F2 U2 L2 D2 R2 U2 F2 L2 U2 F2 L2 D2 R2 U2 F2 L2 U2 F2</td>
+                        </tr>
+                    </table>
+                </div>
             </div>
 
             <div id="page-devices" class="page-view">
@@ -282,6 +334,9 @@
             } else {
                 loadMainApp(savedDevice);
             }
+            
+            // Generate the first scramble on load!
+            generateScramble();
         });
 
         function selectDevice(deviceType) {
@@ -305,13 +360,11 @@
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
-            const toggleBtn = document.getElementById('mainToggleBtn'); // Get the main button
+            const toggleBtn = document.getElementById('mainToggleBtn');
             
-            // Toggle classes
             panel.classList.toggle('open');
             mainContent.classList.toggle('shifted');
 
-            // Change button text based on panel state
             if (panel.classList.contains('open')) {
                 toggleBtn.innerText = '✖ Close';
             } else {
@@ -335,6 +388,33 @@
             btnElement.classList.add('active');
 
             document.getElementById('pageTitle').innerText = pageTitleText;
+        }
+
+        // --- 4. SCRAMBLE GENERATOR LOGIC ---
+        function generateScramble() {
+            const faces = ['U', 'D', 'R', 'L', 'F', 'B'];
+            const modifiers = ['', "'", '2'];
+            let scramble = [];
+            let lastFaceIndex = -1;
+
+            // Generate 20 random moves
+            for (let i = 0; i < 20; i++) {
+                let currentFaceIndex;
+                
+                // Do-While loop ensures we don't pick the same face twice in a row (e.g. U U2)
+                do {
+                    currentFaceIndex = Math.floor(Math.random() * faces.length);
+                } while (currentFaceIndex === lastFaceIndex);
+                
+                lastFaceIndex = currentFaceIndex;
+                
+                // Pick a random modifier (nothing, prime, or double)
+                let mod = modifiers[Math.floor(Math.random() * modifiers.length)];
+                scramble.push(faces[currentFaceIndex] + mod);
+            }
+            
+            // Push the array of moves to the HTML text element
+            document.getElementById('scrambleText').innerText = scramble.join('  ');
         }
     </script>
 </body>
