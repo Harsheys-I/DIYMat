@@ -11,15 +11,12 @@
             background-color: #121212;
             color: #ffffff;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            overflow-x: hidden; /* Prevents scrolling when panel is hidden */
         }
 
-        /* Modal (Pop-up) Styles */
+        /* Modal (First Run Setup) Styles */
         #setupModal {
-            display: none; /* Hidden by default, JS will reveal it */
+            display: none; 
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.85);
@@ -43,12 +40,7 @@
         p.subtitle { color: #aaaaaa; margin-bottom: 2rem; }
 
         /* Device Grid */
-        .device-grid {
-            display: flex;
-            gap: 1.5rem;
-            justify-content: center;
-        }
-
+        .device-grid { display: flex; gap: 1.5rem; justify-content: center; }
         .device-card {
             background-color: #2a2a2a;
             border: 2px solid transparent;
@@ -58,34 +50,103 @@
             transition: all 0.2s ease;
             flex: 1;
         }
-
-        .device-card:hover {
-            border-color: #4CAF50;
-            transform: translateY(-5px);
-            background-color: #333333;
-        }
-
-        /* Placeholder for actual device images */
-        .device-img {
-            width: 100%;
-            height: 140px;
-            background-color: #444;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-            font-size: 0.9rem;
-        }
-
+        .device-card:hover { border-color: #4CAF50; transform: translateY(-5px); background-color: #333333; }
+        
+        .device-img svg { width: 60px; height: 60px; fill: #aaaaaa; transition: fill 0.2s ease; margin-bottom: 1rem; }
+        .device-card:hover .device-img svg { fill: #4CAF50; }
+        
         .device-card h3 { margin: 0 0 0.5rem 0; color: #fff; }
         .device-card p { margin: 0; color: #aaa; font-size: 0.9rem; }
 
-        /* Temporary Main App Interface */
-        #mainApp { display: none; text-align: center; }
-        .reset-btn { margin-top: 20px; padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .reset-btn:hover { background: #555; }
+        /* Main App Interface */
+        #mainApp { display: none; height: 100vh; position: relative; }
+        
+        /* Top Navigation Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+        }
+        
+        .menu-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .menu-btn:hover { background: #4CAF50; }
+
+        /* Sliding Side Panel */
+        #sidePanel {
+            position: fixed;
+            top: 0;
+            right: -350px; /* Hidden off-screen by default */
+            width: 350px;
+            height: 100%;
+            background-color: #1a1a1a;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+            transition: right 0.3s ease-in-out;
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Class added by JS to slide the panel in */
+        #sidePanel.open { right: 0; }
+
+        .panel-header {
+            padding: 20px;
+            background: #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        
+        .close-btn {
+            background: none;
+            color: #aaa;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: #fff; }
+
+        /* Tab Buttons inside Panel */
+        .tab-menu {
+            display: flex;
+            background: #222;
+            border-bottom: 2px solid #333;
+        }
+        .tab-btn {
+            flex: 1;
+            background: inherit;
+            color: #aaa;
+            border: none;
+            padding: 12px 0;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #fff; background: #2a2a2a; }
+        .tab-btn.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; font-weight: bold; }
+
+        /* Tab Content Areas */
+        .tab-content {
+            padding: 20px;
+            display: none; /* All hidden by default */
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        
+        /* Debug Reset Button */
+        .reset-btn { width: 100%; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;}
+        .reset-btn:hover { background: #b71c1c; }
     </style>
 </head>
 <body>
@@ -94,69 +155,132 @@
         <div class="modal-content">
             <h2>Hardware Setup</h2>
             <p class="subtitle">Select your device to configure the connection protocol.</p>
-
             <div class="device-grid">
                 <div class="device-card" onclick="selectDevice('ghost')">
-                    <div class="device-img">[Insert UNO Photo Here]</div>
+                    <div class="device-img">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15,9H9V6H15V9M20,3H4A2,2 0 0,0 2,5V19A2,2 0 0,0 4,21H20A2,2 0 0,0 22,19V5A2,2 0 0,0 20,3M20,19H4V5H20V19M17,11V18H7V11H17Z" />
+                        </svg>
+                    </div>
                     <h3>The Ghost</h3>
                     <p>Arduino UNO R3 (Wired USB)</p>
                 </div>
-
                 <div class="device-card" onclick="selectDevice('esp')">
-                    <div class="device-img">[Insert ESP32 Photo Here]</div>
+                    <div class="device-img">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.71,7.71L12,2V8.59L9.12,5.7L7.71,7.12L11.59,11L7.71,14.88L9.12,16.29L12,13.41V20L17.71,14.29L13.41,10L17.71,5.71M14,5.83L15.88,7.71L14,9.59V5.83M15.88,14.29L14,16.17V12.41L15.88,14.29Z" />
+                        </svg>
+                    </div>
                     <h3>The Pro</h3>
-                    <p>ESP32-C3 (Wireless Bluetooth)</p>
+                    <p>ESP32-C3 (Bluetooth BLE)</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="mainApp">
-        <h1 style="font-size: 4rem;">0.000</h1>
-        <p>Active Connection: <strong id="activeDevice" style="color: #4CAF50;">None</strong></p>
+        <div class="top-bar">
+            <div>
+                <span style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">ArchSense</span>
+            </div>
+            <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
+        </div>
 
-        <button class="reset-btn" onclick="resetSetup()">Reset Choice (Debug)</button>
+        <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
+            <p style="color: #555;">(Timer Display Area)</p>
+        </div>
+
+        <div id="sidePanel">
+            <div class="panel-header">
+                <h3 style="margin: 0;">Dashboard</h3>
+                <button class="close-btn" onclick="togglePanel()">✖</button>
+            </div>
+            
+            <div class="tab-menu">
+                <button class="tab-btn active" onclick="openTab('tab-timer')">Timer</button>
+                <button class="tab-btn" onclick="openTab('tab-settings')">Settings</button>
+                <button class="tab-btn" onclick="openTab('tab-stats')">Stats</button>
+                <button class="tab-btn" onclick="openTab('tab-devices')">Devices</button>
+            </div>
+
+            <div id="tab-timer" class="tab-content" style="display: block;">
+                <h4>Timer Controls</h4>
+                <p style="color: #aaa; font-size: 0.9rem;">Solve times and penalties will appear here.</p>
+            </div>
+
+            <div id="tab-settings" class="tab-content">
+                <h4>Application Settings</h4>
+                <p style="color: #aaa; font-size: 0.9rem;">Options for inspection, sound, and 4-touch mode.</p>
+                <label><input type="checkbox"> WCA Inspection</label><br><br>
+                <label><input type="checkbox"> 4-Touch Mode</label>
+            </div>
+
+            <div id="tab-stats" class="tab-content">
+                <h4>Session Statistics</h4>
+                <p style="color: #aaa; font-size: 0.9rem;">Ao5: --<br>Ao12: --</p>
+            </div>
+
+            <div id="tab-devices" class="tab-content">
+                <h4>Hardware</h4>
+                <p>Active: <strong id="activeDevice" style="color: #4CAF50;">None</strong></p>
+                <button class="reset-btn" onclick="resetSetup()">Reset Device Setup</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 1. When the page loads, check memory
+        // --- 1. SETUP LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
             const savedDevice = localStorage.getItem('stackmatDevice');
-
             if (!savedDevice) {
-                // No device saved? Show the modal.
                 document.getElementById('setupModal').style.display = 'flex';
             } else {
-                // Already set up? Skip straight to the main app.
                 loadMainApp(savedDevice);
             }
         });
 
-        // 2. Function triggered when a user clicks a device card
         function selectDevice(deviceType) {
-            // Save it forever in the browser
             localStorage.setItem('stackmatDevice', deviceType);
-
-            // Hide the modal
             document.getElementById('setupModal').style.display = 'none';
-
-            // Boot up the main app
             loadMainApp(deviceType);
         }
 
-        // 3. Function to initialize the main interface
         function loadMainApp(deviceType) {
             document.getElementById('mainApp').style.display = 'block';
-
-            // Update the UI based on what they picked
-            const deviceName = (deviceType === 'ghost') ? 'Arduino UNO (USB Serial)' : 'ESP32 (Bluetooth BLE)';
+            const deviceName = (deviceType === 'ghost') ? 'Arduino UNO (USB)' : 'ESP32 (Bluetooth)';
             document.getElementById('activeDevice').innerText = deviceName;
         }
 
-        // 4. Debug function (so you can test the popup multiple times)
         function resetSetup() {
             localStorage.removeItem('stackmatDevice');
             location.reload();
+        }
+
+        // --- 2. SIDE PANEL LOGIC ---
+        function togglePanel() {
+            const panel = document.getElementById('sidePanel');
+            // Toggle the "open" class to trigger the CSS transition
+            panel.classList.toggle('open');
+        }
+
+        // --- 3. TAB LOGIC ---
+        function openTab(tabId) {
+            // Hide all tab contents
+            const contents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].style.display = 'none';
+            }
+
+            // Remove 'active' class from all buttons
+            const buttons = document.getElementsByClassName('tab-btn');
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+
+            // Show the selected tab and make the clicked button active
+            document.getElementById(tabId).style.display = 'block';
+            // Find the button that triggered this by checking its onclick attribute
+            event.currentTarget.classList.add('active');
         }
     </script>
 </body>
