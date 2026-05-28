@@ -152,7 +152,7 @@
         
         .page-view.active { display: block; }
 
-        /* --- NEW: csTimer Style Features --- */
+        /* --- csTimer Style Features --- */
         
         /* Scramble Area */
         .scramble-container {
@@ -229,7 +229,6 @@
             </div>
             
             <div class="nav-menu">
-                <button class="nav-btn active" onclick="openPage('page-timer', 'Main Timer', this)">Timer</button>
                 <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">Settings</button>
                 <button class="nav-btn" onclick="openPage('page-stats', 'Session Data', this)">Stats</button>
                 <button class="nav-btn" onclick="openPage('page-devices', 'Device Manager', this)">Devices</button>
@@ -334,8 +333,6 @@
             } else {
                 loadMainApp(savedDevice);
             }
-            
-            // Generate the first scramble on load!
             generateScramble();
         });
 
@@ -372,22 +369,33 @@
             }
         }
 
-        // --- 3. PAGE NAVIGATION LOGIC ---
+        // --- 3. PAGE NAVIGATION LOGIC (UPDATED WITH TOGGLE) ---
         function openPage(pageId, pageTitleText, btnElement) {
+            // Check if the user clicked the button that is ALREADY active
+            const isAlreadyActive = btnElement.classList.contains('active');
+
+            // 1. Hide all pages
             const pages = document.getElementsByClassName('page-view');
             for (let i = 0; i < pages.length; i++) {
                 pages[i].classList.remove('active');
             }
 
+            // 2. Remove 'active' highlight from all menu buttons
             const buttons = document.getElementsByClassName('nav-btn');
             for (let i = 0; i < buttons.length; i++) {
                 buttons[i].classList.remove('active');
             }
 
-            document.getElementById(pageId).classList.add('active');
-            btnElement.classList.add('active');
-
-            document.getElementById('pageTitle').innerText = pageTitleText;
+            if (isAlreadyActive) {
+                // TOGGLE OFF: Go back to the main timer view
+                document.getElementById('page-timer').classList.add('active');
+                document.getElementById('pageTitle').innerText = 'Main Timer';
+            } else {
+                // TOGGLE ON: Show the selected page and highlight the button
+                document.getElementById(pageId).classList.add('active');
+                btnElement.classList.add('active');
+                document.getElementById('pageTitle').innerText = pageTitleText;
+            }
         }
 
         // --- 4. SCRAMBLE GENERATOR LOGIC ---
@@ -397,23 +405,17 @@
             let scramble = [];
             let lastFaceIndex = -1;
 
-            // Generate 20 random moves
             for (let i = 0; i < 20; i++) {
                 let currentFaceIndex;
-                
-                // Do-While loop ensures we don't pick the same face twice in a row (e.g. U U2)
                 do {
                     currentFaceIndex = Math.floor(Math.random() * faces.length);
                 } while (currentFaceIndex === lastFaceIndex);
                 
                 lastFaceIndex = currentFaceIndex;
-                
-                // Pick a random modifier (nothing, prime, or double)
                 let mod = modifiers[Math.floor(Math.random() * modifiers.length)];
                 scramble.push(faces[currentFaceIndex] + mod);
             }
             
-            // Push the array of moves to the HTML text element
             document.getElementById('scrambleText').innerText = scramble.join('  ');
         }
     </script>
