@@ -11,7 +11,7 @@
             background-color: #121212;
             color: #ffffff;
             margin: 0;
-            overflow-x: hidden; /* Prevents scrolling when panel is hidden */
+            overflow-x: hidden; 
         }
 
         /* Modal (First Run Setup) Styles */
@@ -81,23 +81,23 @@
         }
         .menu-btn:hover { background: #4CAF50; }
 
-        /* Sliding Side Panel */
+        /* Sliding Side Panel (Moved to Left) */
         #sidePanel {
             position: fixed;
             top: 0;
-            right: -350px; /* Hidden off-screen by default */
+            left: -350px; /* Hidden off-screen to the LEFT */
             width: 350px;
             height: 100%;
             background-color: #1a1a1a;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.5);
-            transition: right 0.3s ease-in-out;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.5); /* Shadow shifted to right side of panel */
+            transition: left 0.3s ease-in-out; /* Transition changed to animate 'left' property */
             z-index: 500;
             display: flex;
             flex-direction: column;
         }
 
         /* Class added by JS to slide the panel in */
-        #sidePanel.open { right: 0; }
+        #sidePanel.open { left: 0; }
 
         .panel-header {
             padding: 20px;
@@ -117,31 +117,49 @@
         }
         .close-btn:hover { color: #fff; }
 
-        /* Tab Buttons inside Panel */
+        /* Main Panel Layout: Flex row to put vertical tabs next to content */
+        .panel-body {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden; /* Keep content contained within panel height */
+        }
+
+        /* Tab Buttons inside Panel (Stacked Vertically) */
         .tab-menu {
             display: flex;
-            background: #222;
-            border-bottom: 2px solid #333;
+            flex-direction: column; /* Stack vertically */
+            background: #1e1e1e;
+            width: 100px; /* Fixed width for the vertical tab bar */
+            border-right: 1px solid #333; /* Line separating tabs from content */
         }
         .tab-btn {
-            flex: 1;
             background: inherit;
             color: #aaa;
             border: none;
-            padding: 12px 0;
+            border-left: 3px solid transparent; /* Highlight moves to the left edge */
+            padding: 20px 10px;
             cursor: pointer;
             font-size: 0.95rem;
+            text-align: left; /* Align text nicely */
             transition: all 0.2s;
         }
         .tab-btn:hover { color: #fff; background: #2a2a2a; }
-        .tab-btn.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; font-weight: bold; }
+        
+        /* Active state styling for vertical tabs */
+        .tab-btn.active { 
+            color: #4CAF50; 
+            border-left: 3px solid #4CAF50; 
+            background-color: #222; /* Slight background shift to show connection to content area */
+            font-weight: bold; 
+        }
 
         /* Tab Content Areas */
         .tab-content {
             padding: 20px;
             display: none; /* All hidden by default */
-            flex-grow: 1;
+            flex-grow: 1; /* Takes up remaining space next to tabs */
             overflow-y: auto;
+            background-color: #1a1a1a;
         }
         
         /* Debug Reset Button */
@@ -180,10 +198,10 @@
 
     <div id="mainApp">
         <div class="top-bar">
+            <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
             <div>
                 <span style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">ArchSense</span>
             </div>
-            <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
         </div>
 
         <div style="display: flex; justify-content: center; align-items: center; height: 80vh;">
@@ -196,34 +214,37 @@
                 <button class="close-btn" onclick="togglePanel()">✖</button>
             </div>
             
-            <div class="tab-menu">
-                <button class="tab-btn active" onclick="openTab('tab-timer')">Timer</button>
-                <button class="tab-btn" onclick="openTab('tab-settings')">Settings</button>
-                <button class="tab-btn" onclick="openTab('tab-stats')">Stats</button>
-                <button class="tab-btn" onclick="openTab('tab-devices')">Devices</button>
-            </div>
+            <div class="panel-body">
+                <div class="tab-menu">
+                    <button class="tab-btn active" onclick="openTab('tab-timer')">Timer</button>
+                    <button class="tab-btn" onclick="openTab('tab-settings')">Settings</button>
+                    <button class="tab-btn" onclick="openTab('tab-stats')">Stats</button>
+                    <button class="tab-btn" onclick="openTab('tab-devices')">Devices</button>
+                </div>
 
-            <div id="tab-timer" class="tab-content" style="display: block;">
-                <h4>Timer Controls</h4>
-                <p style="color: #aaa; font-size: 0.9rem;">Solve times and penalties will appear here.</p>
-            </div>
+                <div id="tab-timer" class="tab-content" style="display: block;">
+                    <h4 style="margin-top:0;">Timer Controls</h4>
+                    <p style="color: #aaa; font-size: 0.9rem;">Solve times and penalties will appear here.</p>
+                </div>
 
-            <div id="tab-settings" class="tab-content">
-                <h4>Application Settings</h4>
-                <p style="color: #aaa; font-size: 0.9rem;">Options for inspection, sound, and 4-touch mode.</p>
-                <label><input type="checkbox"> WCA Inspection</label><br><br>
-                <label><input type="checkbox"> 4-Touch Mode</label>
-            </div>
+                <div id="tab-settings" class="tab-content">
+                    <h4 style="margin-top:0;">Settings</h4>
+                    <p style="color: #aaa; font-size: 0.9rem;">Options for inspection and modes.</p>
+                    <label style="display:block; margin-bottom:10px;"><input type="checkbox"> WCA Inspection</label>
+                    <label style="display:block;"><input type="checkbox"> 4-Touch Mode</label>
+                </div>
 
-            <div id="tab-stats" class="tab-content">
-                <h4>Session Statistics</h4>
-                <p style="color: #aaa; font-size: 0.9rem;">Ao5: --<br>Ao12: --</p>
-            </div>
+                <div id="tab-stats" class="tab-content">
+                    <h4 style="margin-top:0;">Statistics</h4>
+                    <p style="color: #aaa; font-size: 0.9rem;">Ao5: --<br>Ao12: --</p>
+                </div>
 
-            <div id="tab-devices" class="tab-content">
-                <h4>Hardware</h4>
-                <p>Active: <strong id="activeDevice" style="color: #4CAF50;">None</strong></p>
-                <button class="reset-btn" onclick="resetSetup()">Reset Device Setup</button>
+                <div id="tab-devices" class="tab-content">
+                    <h4 style="margin-top:0;">Hardware</h4>
+                    <p style="margin-bottom:5px;">Active:</p>
+                    <strong id="activeDevice" style="color: #4CAF50;">None</strong>
+                    <button class="reset-btn" onclick="resetSetup()">Reset Setup</button>
+                </div>
             </div>
         </div>
     </div>
@@ -259,27 +280,22 @@
         // --- 2. SIDE PANEL LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
-            // Toggle the "open" class to trigger the CSS transition
             panel.classList.toggle('open');
         }
 
         // --- 3. TAB LOGIC ---
         function openTab(tabId) {
-            // Hide all tab contents
             const contents = document.getElementsByClassName('tab-content');
             for (let i = 0; i < contents.length; i++) {
                 contents[i].style.display = 'none';
             }
 
-            // Remove 'active' class from all buttons
             const buttons = document.getElementsByClassName('tab-btn');
             for (let i = 0; i < buttons.length; i++) {
                 buttons[i].classList.remove('active');
             }
 
-            // Show the selected tab and make the clicked button active
             document.getElementById(tabId).style.display = 'block';
-            // Find the button that triggered this by checking its onclick attribute
             event.currentTarget.classList.add('active');
         }
     </script>
