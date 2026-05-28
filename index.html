@@ -118,7 +118,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 30px;
+            padding: 10px 30px;
             background-color: #1a1a1a;
             border-bottom: 1px solid #333;
         }
@@ -129,20 +129,21 @@
         }
         .menu-btn:hover { background: #4CAF50; }
 
-        .page-view { display: none; flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
 
         /* Scramble Area */
-        .scramble-container { text-align: center; padding: 20px; background-color: #1e1e1e; border-radius: 8px; margin-bottom: 20px; cursor: pointer; }
-        .scramble-text { font-size: 1.8rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
+        .scramble-container { text-align: center; padding: 15px; background-color: #1e1e1e; border-radius: 8px; margin-bottom: 15px; cursor: pointer; }
+        .scramble-text { font-size: 1.6rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
         
         /* Timer Text */
         #page-timer { text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .timer-display { font-size: 14vw; font-weight: bold; margin-top: 2vh; font-family: monospace; transition: font-size 0.3s, color 0.1s; }
+        /* Notice the font size is drastically reduced to 8vw so it doesn't push the buttons off screen */
+        .timer-display { font-size: 8vw; font-weight: bold; margin-top: 2vh; font-family: monospace; transition: color 0.1s; }
         
         /* Penalty Controls */
-        #penalty-controls { display: none; margin-top: 10px; gap: 10px; }
-        .penalty-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px 16px; font-size: 1rem; border-radius: 4px; cursor: pointer; }
+        #penalty-controls { display: none; margin-top: 15px; gap: 10px; }
+        .penalty-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 10px 20px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
         .penalty-btn:hover { background: #444; }
         .penalty-btn.active-penalty { background: #d32f2f; border-color: #d32f2f; }
 
@@ -221,7 +222,7 @@
                     <button class="penalty-btn" onclick="applyPenalty('OK')">OK</button>
                     <button class="penalty-btn" onclick="applyPenalty('+2')">+2</button>
                     <button class="penalty-btn" onclick="applyPenalty('DNF')">DNF</button>
-                    <button class="penalty-btn" onclick="deleteLastSolve()" style="margin-left: 20px;">✖ Delete</button>
+                    <button class="penalty-btn" onclick="deleteLastSolve()" style="margin-left: 20px; background: #333;">✖ Delete</button>
                 </div>
             </div>
 
@@ -229,7 +230,7 @@
                 <h2>Application Settings</h2>
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
                     <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
-                        <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
+                        <input type="checkbox" id="chkInspection" checked style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
                     </label>
                     <label style="display:block; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode
@@ -296,10 +297,15 @@
         let sessionCount = 1;
         
         // Timer Globals
-        let timerState = 'idle'; // idle, ready, running, stopped
+        let timerState = 'idle'; // idle, inspecting_starting, inspecting, ready, running, stopped
         let startTime = 0;
         let finalTimeMs = 0;
         let timerInterval;
+
+        // Inspection Globals
+        let inspectStartTime = 0;
+        let inspectionInterval;
+        let activeInspectionPenalty = 'OK';
 
         // --- 1. SETUP LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -365,15 +371,34 @@
         // --- 3. KEYBOARD TIMER LOGIC ---
         document.addEventListener('keydown', (e) => {
             if (currentDevice !== 'keyboard' || e.code !== 'Space') return;
-            e.preventDefault(); // Stop spacebar from scrolling page down
+            e.preventDefault(); 
+            if (e.repeat) return; // Prevent OS keyboard repeating from spamming the timer
+
+            const useInspection = document.getElementById('chkInspection').checked;
 
             if (timerState === 'idle' || timerState === 'stopped') {
-                // User puts hands down
-                document.getElementById('mainTimerText').style.color = '#4CAF50'; // Green = Ready
                 document.getElementById('penalty-controls').style.display = 'none';
+                
+                if (useInspection) {
+                    // Tap space to initiate 15s countdown
+                    timerState = 'inspecting_starting';
+                    document.getElementById('mainTimerText').style.color = '#ff9800'; // Orange
+                    document.getElementById('mainTimerText').innerText = "15";
+                } else {
+                    // Skip inspection, go straight to ready
+                    timerState = 'ready';
+                    document.getElementById('mainTimerText').style.color = '#4CAF50'; // Green
+                    activeInspectionPenalty = 'OK';
+                }
+            } 
+            else if (timerState === 'inspecting') {
+                // User put hands down during countdown
+                clearInterval(inspectionInterval);
                 timerState = 'ready';
-            } else if (timerState === 'running') {
-                // User stops the timer
+                document.getElementById('mainTimerText').style.color = '#4CAF50'; // Green
+            } 
+            else if (timerState === 'running') {
+                // Stop solve
                 stopTimer();
             }
         });
@@ -382,27 +407,55 @@
             if (currentDevice !== 'keyboard' || e.code !== 'Space') return;
             e.preventDefault();
 
-            if (timerState === 'ready') {
-                // User lifts hands up to start
+            if (timerState === 'inspecting_starting') {
+                // Released space after tap, start the 15s countdown
+                timerState = 'inspecting';
+                startInspection();
+            } else if (timerState === 'ready') {
+                // Lifted hands to start solve!
                 startTimer();
             }
         });
 
+        // --- INSPECTION ENGINE ---
+        function startInspection() {
+            inspectStartTime = Date.now();
+            activeInspectionPenalty = 'OK';
+            document.getElementById('mainTimerText').style.color = '#ff9800'; // Orange Warning
+
+            inspectionInterval = setInterval(() => {
+                let elapsed = Date.now() - inspectStartTime;
+                let remaining = 15 - Math.floor(elapsed / 1000);
+
+                if (remaining > 0) {
+                    document.getElementById('mainTimerText').innerText = remaining;
+                } else if (remaining <= 0 && remaining > -2) {
+                    document.getElementById('mainTimerText').innerText = "+2";
+                    document.getElementById('mainTimerText').style.color = '#d32f2f'; // Red
+                    activeInspectionPenalty = '+2';
+                } else {
+                    document.getElementById('mainTimerText').innerText = "DNF";
+                    document.getElementById('mainTimerText').style.color = '#d32f2f';
+                    activeInspectionPenalty = 'DNF';
+                }
+            }, 100);
+        }
+
+        // --- SOLVE TIMER ENGINE ---
         function startTimer() {
             timerState = 'running';
             document.getElementById('mainTimerText').style.color = '#ffffff';
             startTime = Date.now();
             timerInterval = setInterval(() => {
                 document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime);
-            }, 10); // Update UI roughly 100fps
+            }, 10);
         }
 
         function stopTimer() {
             timerState = 'stopped';
             clearInterval(timerInterval);
             finalTimeMs = Date.now() - startTime;
-            document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
-            saveSolve();
+            saveSolve(activeInspectionPenalty);
         }
 
         function formatTime(ms) {
@@ -410,30 +463,43 @@
         }
 
         // --- 4. DATA & PENALTY LOGIC ---
-        function saveSolve() {
+        function saveSolve(autoPenalty = 'OK') {
             solves.push({
                 timeMs: finalTimeMs,
-                penalty: 'OK',
+                penalty: autoPenalty,
                 scramble: document.getElementById('scrambleText').innerText
             });
             document.getElementById('penalty-controls').style.display = 'flex';
+            
+            // Instantly apply visual penalty from inspection if it exists
+            applyVisualPenalty(autoPenalty, finalTimeMs);
             updateStatsUI();
             generateScramble();
         }
 
         function applyPenalty(type) {
             if(solves.length === 0) return;
-            
             let lastSolve = solves[solves.length - 1];
             lastSolve.penalty = type;
             
-            // Update Main Timer Text visually
-            let displayStr = formatTime(lastSolve.timeMs);
-            if (type === 'DNF') displayStr = 'DNF';
-            else if (type === '+2') displayStr = formatTime(lastSolve.timeMs + 2000) + '+';
+            applyVisualPenalty(type, lastSolve.timeMs);
+            updateStatsUI();
+        }
+
+        // Helper to update the big text without making a new solve
+        function applyVisualPenalty(type, rawTimeMs) {
+            let displayStr = formatTime(rawTimeMs);
+            document.getElementById('mainTimerText').style.color = '#ffffff';
+
+            if (type === 'DNF') {
+                displayStr = 'DNF';
+                document.getElementById('mainTimerText').style.color = '#d32f2f';
+            } else if (type === '+2') {
+                displayStr = formatTime(rawTimeMs + 2000) + '+';
+                document.getElementById('mainTimerText').style.color = '#ff9800';
+            }
             
             document.getElementById('mainTimerText').innerText = displayStr;
-            updateStatsUI();
         }
 
         function deleteLastSolve() {
@@ -441,6 +507,7 @@
             solves.pop();
             document.getElementById('penalty-controls').style.display = 'none';
             document.getElementById('mainTimerText').innerText = '0.000';
+            document.getElementById('mainTimerText').style.color = '#ffffff';
             timerState = 'idle';
             updateStatsUI();
         }
@@ -451,7 +518,9 @@
                 sessionCount++;
                 document.getElementById('sessionTitle').innerText = `Session ${sessionCount} Statistics`;
                 document.getElementById('mainTimerText').innerText = '0.000';
+                document.getElementById('mainTimerText').style.color = '#ffffff';
                 document.getElementById('penalty-controls').style.display = 'none';
+                timerState = 'idle';
                 updateStatsUI();
                 generateScramble();
             }
@@ -469,7 +538,6 @@
 
             let validTimes = [];
 
-            // Loop backwards so newest solves appear at the top
             for(let i = solves.length - 1; i >= 0; i--) {
                 let s = solves[i];
                 let actualMs = s.timeMs;
@@ -479,10 +547,10 @@
                 if(s.penalty === '+2') {
                     actualMs += 2000;
                     displayTime = formatTime(actualMs) + '+';
-                    color = '#ff9800'; // Warning Orange
+                    color = '#ff9800';
                 } else if(s.penalty === 'DNF') {
                     displayTime = 'DNF';
-                    color = '#d32f2f'; // Error Red
+                    color = '#d32f2f';
                 }
 
                 if(s.penalty !== 'DNF') validTimes.push(actualMs);
@@ -497,7 +565,6 @@
                 tbody.appendChild(tr);
             }
 
-            // Simple Mean Calculation
             if(validTimes.length > 0) {
                 let sum = validTimes.reduce((a, b) => a + b, 0);
                 document.getElementById('statMean').innerText = formatTime(sum / validTimes.length);
