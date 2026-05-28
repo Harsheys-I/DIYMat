@@ -55,7 +55,7 @@
         
         /* Session Selector UI */
         .session-selector-container { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
-        .session-dropdown { flex-grow: 1; background: #252525; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; }
+        .session-dropdown { flex-grow: 1; background: #252525; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; text-overflow: ellipsis; }
         .session-dropdown:focus { border-color: #4CAF50; }
         .session-manage-btn { background: #333; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .session-manage-btn:hover { background: #4CAF50; }
@@ -189,12 +189,11 @@
                 
                 <div class="stats-sidebar">
                     <div class="session-selector-container">
-                        <select id="sessionDropdown" class="session-dropdown" onchange="switchSession(this.value)">
-                            </select>
+                        <select id="sessionDropdown" class="session-dropdown" onchange="switchSession(this.value)"></select>
                         <button class="session-manage-btn" onclick="openSessionManager()" title="Manage Sessions">⚙️</button>
                     </div>
 
-                    <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center; display:none;">Session 1</h2>
+                    <h2 id="sessionTitle" style="display:none;">Session 1</h2>
 
                     <div class="mini-stats-grid">
                         <div id="boxMean" class="mini-stat-box visible"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
@@ -218,8 +217,7 @@
                                     <th style="width: 25%;">Ao100</th>
                                 </tr>
                             </thead>
-                            <tbody id="solveTableBody">
-                                </tbody>
+                            <tbody id="solveTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -233,7 +231,7 @@
                         <div id="mainTimerText" class="timer-display">0.000</div>
                         <div id="penalty-controls">
                             <button class="penalty-btn" onclick="applyPenalty('OK')">OK</button>
-                            <button class="penalty-btn" onclick="applyPenalty('+2')">+2</button>
+                            <button class="penalty-btn" id="btnPenaltyPlus" onclick="applyPenalty('+2')">+2</button>
                             <button class="penalty-btn" onclick="applyPenalty('DNF')">DNF</button>
                             <button class="penalty-btn" onclick="deleteLastSolve()" style="margin-left: 20px; background: #333;">✖ Delete</button>
                         </div>
@@ -243,23 +241,40 @@
 
             <div id="page-settings" class="page-view">
                 <h2>Application Settings</h2>
-                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                <div style="background: #1e1e1e; padding: 20px 30px; border-radius: 8px; max-width: 600px;">
+                    
                     <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
                         <input type="checkbox" id="chkInspection" style="transform: scale(1.5); margin-right: 15px;" onchange="saveSettings()"> Enable WCA Inspection
                     </label>
+                    
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
                     
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Inspection Duration (seconds):</span>
-                        <input type="number" id="valInspectionTime" min="1" max="60" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                        <input type="number" id="valInspectionTime" min="1" max="60" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Inspection DNF Grace Period (sec):</span>
+                        <input type="number" id="valInspGrace" min="0" max="15" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Timer Hold Delay (seconds):</span>
-                        <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                        <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
+                    </div>
+                    
+                    <hr style="border-top: 1px solid #333; border-bottom: none; margin: 20px 0;">
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Average Trim Percentage (%):</span>
+                        <input type="number" id="valTrimPct" min="0" max="50" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Penalty Time Addition (ms):</span>
+                        <input type="number" id="valPlusPenalty" step="100" min="0" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
                         <span>Scramble Length (moves):</span>
-                        <input type="number" id="valScrambleLen" min="1" max="50" style="width: 60px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" onchange="saveSettings()">
+                        <input type="number" id="valScrambleLen" min="1" max="50" style="width: 80px; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; text-align: center;" oninput="saveSettings()">
                     </div>
                 </div>
             </div>
@@ -271,7 +286,6 @@
                     
                     <input type="file" id="importFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
                     <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="margin-right: 10px;">📥 Import CSV</button>
-                    
                     <button class="action-btn" onclick="exportCSV('current')" style="margin-right: 10px;">📤 Export Current Session</button>
                     <button class="action-btn" onclick="exportCSV('all')">📤 Export All Sessions</button>
 
@@ -314,15 +328,16 @@
         let appSettings = {
             inspectionEnabled: true,
             inspectionTime: 15,
+            inspGrace: 2,
             holdDelay: 0.6,
-            scrambleLen: 20
+            scrambleLen: 20,
+            trimPct: 5,
+            plusPenalty: 2000
         };
         
-        // Relational Session Database
         let sessions = [];
         let activeSessionId = null;
 
-        // Timer Execution Globals
         let timerState = 'idle'; 
         let startTime = 0;
         let finalTimeMs = 0;
@@ -348,21 +363,33 @@
 
         function loadSettings() {
             const saved = localStorage.getItem('archSenseSettings');
-            if (saved) {
-                appSettings = { ...appSettings, ...JSON.parse(saved) };
-            }
+            if (saved) { appSettings = { ...appSettings, ...JSON.parse(saved) }; }
+            
             document.getElementById('chkInspection').checked = appSettings.inspectionEnabled;
             document.getElementById('valInspectionTime').value = appSettings.inspectionTime;
+            document.getElementById('valInspGrace').value = appSettings.inspGrace;
             document.getElementById('valHoldDelay').value = appSettings.holdDelay;
+            document.getElementById('valTrimPct').value = appSettings.trimPct;
+            document.getElementById('valPlusPenalty').value = appSettings.plusPenalty;
             document.getElementById('valScrambleLen').value = appSettings.scrambleLen;
+
+            // Update UI Button Text dynamically
+            document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
         }
 
         function saveSettings() {
             appSettings.inspectionEnabled = document.getElementById('chkInspection').checked;
             appSettings.inspectionTime = parseInt(document.getElementById('valInspectionTime').value) || 15;
+            appSettings.inspGrace = parseInt(document.getElementById('valInspGrace').value) || 2;
             appSettings.holdDelay = parseFloat(document.getElementById('valHoldDelay').value) || 0.6;
+            appSettings.trimPct = parseInt(document.getElementById('valTrimPct').value) || 5;
+            appSettings.plusPenalty = parseInt(document.getElementById('valPlusPenalty').value) || 2000;
             appSettings.scrambleLen = parseInt(document.getElementById('valScrambleLen').value) || 20;
+            
             localStorage.setItem('archSenseSettings', JSON.stringify(appSettings));
+            document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
+            
+            updateStatsUI(); // Retrigger math on trim/penalty changes
         }
 
         function loadDatabase() {
@@ -382,7 +409,6 @@
                 activeSessionId = sessions[0].id;
                 persistDatabase(); 
             }
-            
             updateSessionUI();
             updateStatsUI();
         }
@@ -409,7 +435,6 @@
                 dropdown.appendChild(opt);
             });
 
-            // Keep titles perfectly in sync
             const activeName = getActiveSession().name;
             document.getElementById('sessionTitle').innerText = activeName;
             document.getElementById('dangerZoneSessionName').innerText = activeName;
@@ -467,7 +492,8 @@
                 let input = document.createElement('input');
                 input.type = 'text';
                 input.value = s.name;
-                input.onchange = (e) => renameSession(s.id, e.target.value);
+                // BUG FIX: Using oninput to ensure every keystroke instantly saves to memory
+                input.oninput = (e) => renameSession(s.id, e.target.value);
                 row.appendChild(input);
 
                 row.innerHTML += `<span style="color:#888; font-size:0.9rem; min-width: 60px;">${s.solves.length} solves</span>`;
@@ -488,8 +514,7 @@
             if (s && newName.trim().length > 0) {
                 s.name = newName.trim();
                 persistDatabase();
-                updateSessionUI();
-                // Not forcing a full re-render of modal to keep input focus smooth
+                updateSessionUI(); // Updates dropdown instantly without re-rendering modal input
             }
         }
 
@@ -516,7 +541,7 @@
             }
         }
 
-        // --- 3. HARDWARE & UI LOGIC ---
+        // --- 3. UI NAVIGATION ---
         function selectDevice(deviceType) {
             localStorage.setItem('stackmatDevice', deviceType);
             document.getElementById('setupModal').style.display = 'none';
@@ -545,18 +570,11 @@
         }
 
         function openPage(pageId, pageTitleText, btnElement) {
-            const isAlreadyActive = btnElement.classList.contains('active');
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            
-            if (isAlreadyActive) {
-                document.getElementById('page-timer').classList.add('active');
-                document.getElementById('pageTitle').innerText = 'Main Timer';
-            } else {
-                document.getElementById(pageId).classList.add('active');
-                btnElement.classList.add('active');
-                document.getElementById('pageTitle').innerText = pageTitleText;
-            }
+            document.getElementById(pageId).classList.add('active');
+            btnElement.classList.add('active');
+            document.getElementById('pageTitle').innerText = pageTitleText;
         }
 
         function setFocusMode(active) {
@@ -570,12 +588,10 @@
             e.preventDefault(); 
             if (e.repeat) return; 
 
-            const useInspection = appSettings.inspectionEnabled;
-
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
                 
-                if (useInspection) {
+                if (appSettings.inspectionEnabled) {
                     timerState = 'inspecting_starting';
                     setFocusMode(true); 
                     document.getElementById('mainTimerText').style.color = '#ff9800'; 
@@ -647,13 +663,13 @@
                 let elapsed = Date.now() - inspectStartTime;
                 let remaining = appSettings.inspectionTime - Math.floor(elapsed / 1000);
                 
-                if (remaining <= 0 && remaining > -2) activeInspectionPenalty = '+2';
-                else if (remaining <= -2) activeInspectionPenalty = 'DNF';
+                if (remaining <= 0 && remaining > -appSettings.inspGrace) activeInspectionPenalty = '+2';
+                else if (remaining <= -appSettings.inspGrace) activeInspectionPenalty = 'DNF';
                 
                 if (timerState !== 'ready') {
                     let displayStr = "DNF";
                     if (remaining > 0) displayStr = remaining;
-                    else if (remaining <= 0 && remaining > -2) displayStr = "+2";
+                    else if (remaining <= 0 && remaining > -appSettings.inspGrace) displayStr = "+2";
 
                     document.getElementById('mainTimerText').innerText = displayStr;
 
@@ -682,7 +698,7 @@
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
-        // --- 5. DATA, AVERAGES, & PB TRACKING ---
+        // --- 5. DATA & STATISTICS LOGIC ---
         function saveSolve(autoPenalty = 'OK') {
             getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
@@ -706,7 +722,7 @@
             let displayStr = formatTime(rawTimeMs);
             document.getElementById('mainTimerText').style.color = '#ffffff';
             if (type === 'DNF') { displayStr = 'DNF'; document.getElementById('mainTimerText').style.color = '#d32f2f'; } 
-            else if (type === '+2') { displayStr = formatTime(rawTimeMs + 2000) + '+'; document.getElementById('mainTimerText').style.color = '#ffeb3b'; }
+            else if (type === '+2') { displayStr = formatTime(rawTimeMs + appSettings.plusPenalty) + '+'; document.getElementById('mainTimerText').style.color = '#ffeb3b'; }
             document.getElementById('mainTimerText').innerText = displayStr;
         }
 
@@ -728,11 +744,11 @@
             if (slice.length === 0) return null;
             let times = slice.map(s => {
                 if (s.penalty === 'DNF') return Infinity;
-                if (s.penalty === '+2') return s.timeMs + 2000;
+                if (s.penalty === '+2') return s.timeMs + appSettings.plusPenalty;
                 return s.timeMs;
             });
             times.sort((a, b) => a - b);
-            let trimCount = Math.ceil(slice.length * 0.05);
+            let trimCount = Math.ceil(slice.length * (appSettings.trimPct / 100));
             let countedTimes = times.slice(trimCount, slice.length - trimCount);
             if (countedTimes.includes(Infinity)) return Infinity; 
             let sum = countedTimes.reduce((a, b) => a + b, 0);
@@ -774,7 +790,7 @@
 
             for (let i = 0; i < solves.length; i++) {
                 let s = solves[i];
-                let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
+                let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
                 
                 let isPbSingle = false;
                 if (actualMs !== Infinity && actualMs <= pbSingle) { pbSingle = actualMs; isPbSingle = true; }
@@ -800,7 +816,7 @@
                 let s = solves[i];
                 let stats = runningStats[i];
                 
-                let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
+                let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
                 if (s.penalty === '+2') displaySingle += '+';
                 if (s.penalty !== 'DNF') validTimes.push(stats.single);
                 
@@ -830,25 +846,20 @@
             if(validTimes.length > 0) {
                 let sum = validTimes.reduce((a, b) => a + b, 0);
                 setUIStat('Mean', formatTime(sum / validTimes.length), true);
-            } else { 
-                setUIStat('Mean', 'DNF', true); 
-            }
+            } else { setUIStat('Mean', 'DNF', true); }
 
             let latestStats = runningStats[runningStats.length - 1];
 
             setUIStat('Best', pbSingle === Infinity ? '--' : formatTime(pbSingle), pbSingle !== Infinity);
-            
             setUIStat('Ao5', latestStats.ao5 === null ? '--' : (latestStats.ao5 === Infinity ? 'DNF' : formatTime(latestStats.ao5)), pbAo5 !== Infinity);
             setUIStat('BestAo5', pbAo5 === Infinity ? '--' : formatTime(pbAo5), pbAo5 !== Infinity);
-            
             setUIStat('Ao12', latestStats.ao12 === null ? '--' : (latestStats.ao12 === Infinity ? 'DNF' : formatTime(latestStats.ao12)), pbAo12 !== Infinity);
             setUIStat('BestAo12', pbAo12 === Infinity ? '--' : formatTime(pbAo12), pbAo12 !== Infinity);
-            
             setUIStat('Ao100', latestStats.ao100 === null ? '--' : (latestStats.ao100 === Infinity ? 'DNF' : formatTime(latestStats.ao100)), pbAo100 !== Infinity);
             setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
-        // --- 6. EXPORT / IMPORT CSV ---
+        // --- 6. IMPORT/EXPORT ---
         function exportCSV(scope) {
             let dataToExport = [];
             let filename = '';
