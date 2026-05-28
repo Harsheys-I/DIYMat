@@ -45,11 +45,15 @@
         .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
 
-        /* SPLIT-SCREEN TIMER & STATS LAYOUT */
+        /* ========================================= */
+        /* SPLIT-SCREEN TIMER & STATS LAYOUT         */
+        /* ========================================= */
         #page-timer.active { display: flex; padding: 0; overflow: hidden; }
 
+        /* Left Side: Stats Sidebar */
         .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 15px 20px; flex-shrink: 0; }
 
+        /* Session Selector UI */
         .session-selector-container { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
         .session-dropdown { flex-grow: 1; background: #252525; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; text-overflow: ellipsis; }
         .session-dropdown:focus { border-color: #4CAF50; }
@@ -62,6 +66,7 @@
         .stat-label { display: block; color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .stat-value { font-size: 1.2rem; font-weight: bold; color: #fff; }
 
+        /* Scrollable Table Container */
         .table-container { flex-grow: 1; overflow-y: auto; background: #252525; border-radius: 6px; padding: 0; }
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-track { background: #252525; }
@@ -77,6 +82,7 @@
         .val-plus2 { color: #ffeb3b !important; }
         .val-dim { color: #888; }
 
+        /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
         .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: #1e1e1e; border-radius: 8px; cursor: pointer; }
         .scramble-text { font-size: 1.6rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
@@ -84,6 +90,7 @@
         .timer-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
         .timer-display { font-size: clamp(5rem, 12vw, 15rem); font-weight: bold; font-family: monospace; transition: color 0.1s; }
 
+        /* Controls & Buttons */
         #penalty-controls { display: none; margin-top: 20px; gap: 10px; }
         #usb-controls { margin-top: 20px; display: flex; justify-content: center; width: 100%; }
 
@@ -104,9 +111,11 @@
         body.focus-mode .timer-area { justify-content: center; }
         body.focus-mode .timer-display { font-size: 25vw; margin-top: 0; }
 
+        /* Full Page Stats Blocks */
         .stat-box-large { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 120px; text-align: center; display: none; }
         .stat-box-large.visible { display: block; }
 
+        /* Session Manager Modal Specifics */
         .session-list-container { flex-grow: 1; overflow-y: auto; background: #151515; border-radius: 8px; margin-bottom: 20px; padding: 10px; text-align: left; }
         .session-row { display: flex; align-items: center; gap: 10px; background: #252525; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
         .session-row input { flex-grow: 1; background: transparent; border: 1px solid transparent; color: #fff; font-size: 1.1rem; padding: 5px; border-radius: 4px; }
@@ -291,11 +300,13 @@
                 <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 800px;">
                     <p style="color: #aaa; margin-bottom: 20px;">Backup your data to a CSV file, or load times from another device/csTimer.</p>
 
-                    <input type="file" id="importFileInput" accept=".csv, .txt" style="display: none;" onchange="importData(event)">
-                    <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="margin-right: 10px;">📥 Import (ArchSense/csTimer)</button>
-
-                    <button class="action-btn" onclick="exportCSV('current')" style="margin-right: 10px;">📤 Export Current Session</button>
-                    <button class="action-btn" onclick="exportCSV('all')">📤 Export All Sessions</button>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px;">
+                        <input type="file" id="importFileInput" accept=".csv, .txt" style="display: none;" onchange="importData(event)">
+                        <button class="action-btn" onclick="document.getElementById('importFileInput').click()">📥 Import (ArchSense/csTimer)</button>
+                        <button class="action-btn" onclick="exportCSV('current')">📤 CSV (Current)</button>
+                        <button class="action-btn" onclick="exportCSV('all')">📤 CSV (All)</button>
+                        <button class="action-btn" onclick="exportCSTimer()" style="background-color: #2196F3; color: #000;">📤 Export as csTimer (.txt)</button>
+                    </div>
 
                     <hr style="border-top: 1px solid #333; border-bottom: none; margin: 30px 0;">
 
@@ -948,8 +959,7 @@
             setUIStat('BestAo100', pbAo100 === Infinity ? '--' : formatTime(pbAo100), pbAo100 !== Infinity);
         }
 
-        // --- 6. DATA IMPORT/EXPORT ---
-
+        // --- 6. EXPORT / IMPORT CSV & CSTIMER LOGIC ---
         function exportCSV(scope) {
             let dataToExport = [];
             let filename = '';
@@ -995,6 +1005,43 @@
             document.body.removeChild(link);
         }
 
+        function exportCSTimer() {
+            if (sessions.length === 0 || (sessions.length === 1 && sessions[0].solves.length === 0)) {
+                alert("No data to export!"); return;
+            }
+
+            let cstExport = { properties: { sessionData: {} } };
+            let sIndex = 1;
+
+            sessions.forEach(s => {
+                if (s.solves.length === 0) return; // Skip empty sessions
+
+                let sKey = "session" + sIndex;
+                cstExport.properties.sessionData[sIndex.toString()] = { name: s.name, opt: {} };
+
+                let mappedSolves = s.solves.map(solve => {
+                    let pen = 0;
+                    if (solve.penalty === '+2') pen = appSettings.plusPenalty;
+                    else if (solve.penalty === 'DNF') pen = -1;
+                    return [[pen, solve.timeMs], solve.scramble, "", Math.floor(Date.now() / 1000)];
+                });
+
+                cstExport[sKey] = mappedSolves;
+                sIndex++;
+            });
+
+            cstExport.properties.sessionData = JSON.stringify(cstExport.properties.sessionData);
+
+            const blob = new Blob([JSON.stringify(cstExport)], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `csTimer_Export_${new Date().toISOString().slice(0,10)}.txt`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1012,7 +1059,6 @@
                         let newSessions = [];
                         let sessionNames = {};
 
-                        // csTimer stores names in the properties dict
                         if (cstData.properties && cstData.properties.sessionData) {
                             try {
                                 const parsedNames = JSON.parse(cstData.properties.sessionData);
@@ -1024,15 +1070,14 @@
 
                         let idCounter = Date.now();
 
-                        // Loop through all keys like "session1", "session2"
                         for (let key in cstData) {
                             if (key.startsWith('session') && Array.isArray(cstData[key])) {
+                                if (cstData[key].length === 0) continue; // Skip empty sessions
+
                                 let sName = sessionNames[key] || `csTimer ${key}`;
                                 let archSolves = [];
 
                                 cstData[key].forEach(solve => {
-                                    // solve[0] = [penalty, time_ms]
-                                    // solve[1] = scramble
                                     let penState = 'OK';
                                     if (solve[0][0] === -1) penState = 'DNF';
                                     else if (solve[0][0] > 0) penState = '+2';
