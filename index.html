@@ -58,31 +58,9 @@
         .device-card h3 { margin: 0 0 0.5rem 0; color: #fff; }
         .device-card p { margin: 0; color: #aaa; font-size: 0.9rem; }
 
-        /* Main App Interface */
-        #mainApp { display: none; height: 100vh; position: relative; display: flex; flex-direction: column; }
+        /* Main App Interface Wrapper */
+        #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
         
-        /* Top Navigation Bar */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 30px;
-            background-color: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        
-        .menu-btn {
-            background: #333;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            font-size: 1.1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .menu-btn:hover { background: #4CAF50; }
-
         /* Sliding Side Navigation Panel */
         #sidePanel {
             position: fixed;
@@ -91,7 +69,7 @@
             width: 300px;
             height: 100%;
             background-color: #1e1e1e;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.8);
+            border-right: 1px solid #333; /* Cleaner border since it pushes content */
             transition: left 0.3s ease-in-out;
             z-index: 500;
             display: flex;
@@ -109,22 +87,11 @@
             border-bottom: 1px solid #333;
         }
         
-        .close-btn {
-            background: none;
-            color: #aaa;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
+        .close-btn { background: none; color: #aaa; border: none; font-size: 1.5rem; cursor: pointer; }
         .close-btn:hover { color: #fff; }
 
         /* Navigation Links inside Panel */
-        .nav-menu {
-            display: flex;
-            flex-direction: column;
-            padding: 10px 0;
-        }
-        
+        .nav-menu { display: flex; flex-direction: column; padding: 10px 0; }
         .nav-btn {
             background: transparent;
             color: #ccc;
@@ -136,17 +103,41 @@
             text-align: left;
             transition: all 0.2s;
         }
-        
         .nav-btn:hover { background: #2a2a2a; color: #fff; }
-        
-        .nav-btn.active {
-            color: #4CAF50;
-            border-left: 4px solid #4CAF50;
-            background-color: #222;
-            font-weight: bold;
+        .nav-btn.active { color: #4CAF50; border-left: 4px solid #4CAF50; background-color: #222; font-weight: bold; }
+
+        /* ========================================== */
+        /* NEW: RESIZABLE MAIN CONTENT AREA           */
+        /* ========================================== */
+        #mainContent {
+            margin-left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
         }
 
-        /* --- THE PAGES (Main Content Areas) --- */
+        /* When panel opens, push it right and shrink the width */
+        #mainContent.shifted {
+            margin-left: 300px;
+            width: calc(100% - 300px); 
+        }
+
+        /* Top Navigation Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+        
+        .menu-btn { background: #333; color: white; border: none; padding: 10px 15px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .menu-btn:hover { background: #4CAF50; }
+
+        /* The Pages (Main Content Areas) */
         .page-view {
             display: none; /* All pages hidden by default */
             flex-grow: 1;
@@ -154,12 +145,12 @@
             overflow-y: auto;
         }
         
-        /* The active page will use flex to center content if needed */
         .page-view.active { display: block; }
 
         /* Timer Page Specific Styles */
         #page-timer { text-align: center; }
-        .timer-display { font-size: 8rem; font-weight: bold; margin-top: 10vh; font-family: monospace; }
+        /* Using vw/vh ensures the timer text adapts beautifully when the panel squishes it */
+        .timer-display { font-size: 10vw; font-weight: bold; margin-top: 10vh; font-family: monospace; transition: font-size 0.3s; }
         
         /* Utility */
         .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;}
@@ -197,11 +188,6 @@
 
     <div id="mainApp" style="display:none;">
         
-        <div class="top-bar">
-            <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
-            <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">Timer</span>
-        </div>
-
         <div id="sidePanel">
             <div class="panel-header">
                 <h3 style="margin: 0;">ArchSense</h3>
@@ -216,65 +202,72 @@
             </div>
         </div>
 
-        <div id="page-timer" class="page-view active">
-            <div class="timer-display">0.000</div>
-            <p style="color: #666; font-size: 1.2rem;">Waiting for connection...</p>
-        </div>
-
-        <div id="page-settings" class="page-view">
-            <h2>Application Settings</h2>
-            <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
-                <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
-                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
-                </label>
-                <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
-                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode (Require lifting hands)
-                </label>
-                <label style="display:block; font-size: 1.1rem;">
-                    <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable Voice Alerts
-                </label>
-            </div>
-        </div>
-
-        <div id="page-stats" class="page-view">
-            <h2>Session Statistics</h2>
-            <div style="display: flex; gap: 20px; margin-bottom: 30px;">
-                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
-                    <h3 style="margin-top: 0; color: #aaa;">Current Ao5</h3>
-                    <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
-                </div>
-                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
-                    <h3 style="margin-top: 0; color: #aaa;">Current Ao12</h3>
-                    <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
-                </div>
-            </div>
+        <div id="mainContent">
             
-            <h3>Solve History</h3>
-            <table style="width: 100%; text-align: left; border-collapse: collapse;">
-                <tr style="border-bottom: 2px solid #333;">
-                    <th style="padding: 10px;">#</th>
-                    <th style="padding: 10px;">Time</th>
-                    <th style="padding: 10px;">Penalty</th>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; color: #aaa;">No solves yet</td>
-                    <td></td>
-                    <td></td>
-                </tr>
-            </table>
-        </div>
-
-        <div id="page-devices" class="page-view">
-            <h2>Device Manager</h2>
-            <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
-                <p>Currently configured for:</p>
-                <h3 id="activeDevice" style="color: #4CAF50; font-size: 1.8rem; margin: 10px 0;">None</h3>
-                <p style="color: #aaa; margin-bottom: 20px;">To connect a different timer architecture (e.g. switching from the Ghost Uno to the Pro ESP32), reset your setup.</p>
-                <button class="reset-btn" onclick="resetSetup()">Reset Hardware Choice</button>
+            <div class="top-bar">
+                <button class="menu-btn" onclick="togglePanel()">☰ Menu</button>
+                <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: #4CAF50;">Timer</span>
             </div>
-        </div>
 
-    </div>
+            <div id="page-timer" class="page-view active">
+                <div class="timer-display">0.000</div>
+                <p style="color: #666; font-size: 1.2rem;">Waiting for connection...</p>
+            </div>
+
+            <div id="page-settings" class="page-view">
+                <h2>Application Settings</h2>
+                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                        <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable WCA Inspection (15s)
+                    </label>
+                    <label style="display:block; margin-bottom:15px; font-size: 1.1rem;">
+                        <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> 4-Touch Mode (Require lifting hands)
+                    </label>
+                    <label style="display:block; font-size: 1.1rem;">
+                        <input type="checkbox" style="transform: scale(1.5); margin-right: 10px;"> Enable Voice Alerts
+                    </label>
+                </div>
+            </div>
+
+            <div id="page-stats" class="page-view">
+                <h2>Session Statistics</h2>
+                <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+                    <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
+                        <h3 style="margin-top: 0; color: #aaa;">Current Ao5</h3>
+                        <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                    </div>
+                    <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1;">
+                        <h3 style="margin-top: 0; color: #aaa;">Current Ao12</h3>
+                        <p style="font-size: 2rem; margin: 0; font-weight: bold;">--</p>
+                    </div>
+                </div>
+                
+                <h3>Solve History</h3>
+                <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <tr style="border-bottom: 2px solid #333;">
+                        <th style="padding: 10px;">#</th>
+                        <th style="padding: 10px;">Time</th>
+                        <th style="padding: 10px;">Penalty</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; color: #aaa;">No solves yet</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div id="page-devices" class="page-view">
+                <h2>Device Manager</h2>
+                <div style="background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px;">
+                    <p>Currently configured for:</p>
+                    <h3 id="activeDevice" style="color: #4CAF50; font-size: 1.8rem; margin: 10px 0;">None</h3>
+                    <p style="color: #aaa; margin-bottom: 20px;">To connect a different timer architecture, reset your setup.</p>
+                    <button class="reset-btn" onclick="resetSetup()">Reset Hardware Choice</button>
+                </div>
+            </div>
+
+        </div> </div>
 
     <script>
         // --- 1. SETUP LOGIC ---
@@ -294,7 +287,7 @@
         }
 
         function loadMainApp(deviceType) {
-            document.getElementById('mainApp').style.display = 'flex'; // Changed to flex for proper layout
+            document.getElementById('mainApp').style.display = 'block'; 
             const deviceName = (deviceType === 'ghost') ? 'Arduino UNO (USB Serial)' : 'ESP32 (Bluetooth BLE)';
             document.getElementById('activeDevice').innerText = deviceName;
         }
@@ -307,11 +300,15 @@
         // --- 2. SIDE PANEL LOGIC ---
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
+            const mainContent = document.getElementById('mainContent');
+            
+            // Toggle panel visibility
             panel.classList.toggle('open');
+            // Toggle main content squish/shift
+            mainContent.classList.toggle('shifted');
         }
 
         // --- 3. PAGE NAVIGATION LOGIC ---
-        // Takes the ID of the page to show, the title for the top bar, and the button clicked
         function openPage(pageId, pageTitleText, btnElement) {
             // 1. Hide all pages
             const pages = document.getElementsByClassName('page-view');
@@ -331,9 +328,8 @@
 
             // 4. Update the Top Bar title
             document.getElementById('pageTitle').innerText = pageTitleText;
-
-            // 5. Automatically close the side menu so the user can see the new page
-            document.getElementById('sidePanel').classList.remove('open');
+            
+            // NOTE: The panel auto-close command has been removed here!
         }
     </script>
 </body>
