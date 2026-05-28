@@ -16,16 +16,7 @@
         }
 
         /* Modal Styles */
-        #setupModal {
-            display: none; 
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
+        #setupModal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background-color: #1e1e1e; padding: 2.5rem; border-radius: 12px; text-align: center; max-width: 800px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h2 { margin-top: 0; font-size: 2rem; }
         p.subtitle { color: #aaaaaa; margin-bottom: 2rem; }
@@ -42,8 +33,8 @@
         /* Main App Interface */
         #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
         
-        /* Sliding Panel */
-        #sidePanel { position: fixed; top: 0; left: -300px; width: 300px; height: 100%; background-color: #1e1e1e; border-right: 1px solid #333; transition: left 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
+        /* Sliding Panel - WIDENED TO 400px to fit new stats */
+        #sidePanel { position: fixed; top: 0; left: -400px; width: 400px; height: 100%; background-color: #1e1e1e; border-right: 1px solid #333; transition: left 0.3s ease-in-out; z-index: 500; display: flex; flex-direction: column; }
         #sidePanel.open { left: 0; }
         .panel-header { padding: 20px; background: #151515; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #333; }
         .nav-menu { display: flex; flex-direction: column; padding: 10px 0; }
@@ -53,7 +44,7 @@
 
         /* Resizable Main Content */
         #mainContent { margin-left: 0; width: 100%; height: 100vh; display: flex; flex-direction: column; transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out; }
-        #mainContent.shifted { margin-left: 300px; width: calc(100% - 300px); }
+        #mainContent.shifted { margin-left: 400px; width: calc(100% - 400px); }
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background-color: #1a1a1a; border-bottom: 1px solid #333; }
         .menu-btn { background: #333; color: white; border: none; padding: 10px 15px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; width: 100px; text-align: center; }
         .menu-btn:hover { background: #4CAF50; }
@@ -61,21 +52,38 @@
         .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
 
-        /* SPLIT-SCREEN TIMER LAYOUT */
+        /* ========================================= */
+        /* SPLIT-SCREEN TIMER & STATS LAYOUT         */
+        /* ========================================= */
         #page-timer.active { display: flex; padding: 0; overflow: hidden; }
-        .stats-sidebar { width: 280px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
-        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+
+        /* Left Side: Stats Sidebar */
+        .stats-sidebar { width: 380px; background-color: #151515; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 10px 20px 20px 20px; flex-shrink: 0; }
+        .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .mini-stat-box { background: #252525; padding: 10px; border-radius: 6px; text-align: center; }
         .stat-label { display: block; color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
         .stat-value { font-size: 1.4rem; font-weight: bold; color: #fff; }
-        .table-container { flex-grow: 1; overflow-y: auto; background: #252525; border-radius: 6px; padding: 0 5px; }
+
+        /* Scrollable Table Container */
+        .table-container { flex-grow: 1; overflow-y: auto; background: #252525; border-radius: 6px; padding: 0; }
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-track { background: #252525; }
         .table-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-        .table-container table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 1rem; }
+        
+        /* Table Styling with Highlight Colors */
+        .table-container table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.95rem; text-align: right; }
         .table-container th { padding: 12px 10px; color: #aaa; border-bottom: 1px solid #444; position: sticky; top: 0; background: #252525; }
         .table-container td { padding: 10px; border-bottom: 1px solid #333; }
+        .table-container tr:hover { background-color: #333; cursor: help; } /* Cursor indicates hoverable scramble */
+        .table-container th:first-child, .table-container td:first-child { text-align: left; }
+        
+        /* Specific Status Colors */
+        .val-pb { color: #00e5ff !important; font-weight: 900; text-shadow: 0 0 8px rgba(0,229,255,0.4); } /* Blue/Cyan PB */
+        .val-dnf { color: #ff5252 !important; } /* Red DNF */
+        .val-plus2 { color: #ffeb3b !important; } /* Yellow +2 */
+        .val-dim { color: #888; } /* Faded text for null states (-) */
 
+        /* Right Side: Timer Area */
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: #121212; align-items: center; justify-content: space-between; }
         .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: #1e1e1e; border-radius: 8px; cursor: pointer; }
         .scramble-text { font-size: 1.6rem; font-family: 'Segoe UI', sans-serif; font-weight: bold; color: #4CAF50; margin: 0; letter-spacing: 2px; }
@@ -83,6 +91,7 @@
         .timer-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
         .timer-display { font-size: clamp(5rem, 12vw, 15rem); font-weight: bold; font-family: monospace; transition: color 0.1s; }
         
+        /* Controls & Buttons */
         #penalty-controls { display: none; margin-top: 20px; gap: 10px; }
         .penalty-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 10px 20px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
         .penalty-btn:hover { background: #444; }
@@ -91,30 +100,16 @@
         .reset-btn { padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;}
         .reset-btn:hover { background: #b71c1c; }
 
-        /* Dynamic Stats Blocks */
-        .stat-box { background: #1e1e1e; padding: 20px; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; display: none; }
-        .stat-box.visible { display: block; }
-        .stat-title { margin-top: 0; color: #aaa; font-size: 1.1rem; margin-bottom: 5px; }
-        .stat-value { font-size: 2.5rem; margin: 0; font-weight: bold; color: #fff; }
-
-        /* ========================================= */
-        /* NEW: FOCUS MODE                           */
-        /* ========================================= */
+        /* FOCUS MODE */
         body.focus-mode .top-bar,
         body.focus-mode .stats-sidebar,
-        body.focus-mode .scramble-container {
-            display: none !important;
-        }
-        body.focus-mode .timer-area {
-            justify-content: center;
-        }
-        body.focus-mode .timer-display {
-            font-size: 25vw; /* Make the timer massive when focused */
-            margin-top: 0;
-        }
+        body.focus-mode .scramble-container { display: none !important; }
+        body.focus-mode .timer-area { justify-content: center; }
+        body.focus-mode .timer-display { font-size: 25vw; margin-top: 0; }
 
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
+            #mainContent.shifted { margin-left: 300px; width: calc(100% - 300px); }
             .stats-sidebar { width: auto; border-right: none; border-bottom: 1px solid #333; max-height: 40vh; }
             .timer-area { padding: 10px; justify-content: flex-start; }
             .timer-display { font-size: 20vw; }
@@ -162,6 +157,7 @@
             </div>
 
             <div id="page-timer" class="page-view active">
+                
                 <div class="stats-sidebar">
                     <h2 id="sessionTitle" style="margin: 0 0 5px 0; font-size: 1.2rem; text-align: center;">Session 1</h2>
                     <div class="mini-stats-grid">
@@ -170,10 +166,24 @@
                         <div class="mini-stat-box"><span class="stat-label">Ao100</span><span id="statAo100" class="stat-value">--</span></div>
                         <div class="mini-stat-box"><span class="stat-label">Mean</span><span id="statMean" class="stat-value">--</span></div>
                     </div>
+                    
                     <div class="table-container">
-                        <table><thead><tr><th>#</th><th>Time</th><th>Pen</th></tr></thead><tbody id="solveTableBody"></tbody></table>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 10%;">#</th>
+                                    <th style="width: 25%;">Time</th>
+                                    <th style="width: 20%;">Ao5</th>
+                                    <th style="width: 20%;">Ao12</th>
+                                    <th style="width: 25%;">Ao100</th>
+                                </tr>
+                            </thead>
+                            <tbody id="solveTableBody">
+                                </tbody>
+                        </table>
                     </div>
                 </div>
+
                 <div class="timer-area">
                     <div class="scramble-container" onclick="generateScramble()">
                         <p id="scrambleText" class="scramble-text">Loading...</p>
@@ -247,7 +257,7 @@
         let spaceHoldStart = 0;
         let holdInterval;
 
-        // --- 1. SETUP & DATA PERSISTENCE LOGIC ---
+        // --- 1. SETUP & DATA PERSISTENCE ---
         document.addEventListener('DOMContentLoaded', () => {
             currentDevice = localStorage.getItem('stackmatDevice');
             if (!currentDevice) {
@@ -316,13 +326,9 @@
             }
         }
 
-        // --- NEW: FOCUS MODE TOGGLE ---
         function setFocusMode(active) {
-            if (active) {
-                document.body.classList.add('focus-mode');
-            } else {
-                document.body.classList.remove('focus-mode');
-            }
+            if (active) document.body.classList.add('focus-mode');
+            else document.body.classList.remove('focus-mode');
         }
 
         // --- 3. KEYBOARD TIMER LOGIC ---
@@ -338,21 +344,21 @@
                 
                 if (useInspection) {
                     timerState = 'inspecting_starting';
-                    setFocusMode(true); // Engages Focus Mode on 15s Countdown start
+                    setFocusMode(true); 
                     document.getElementById('mainTimerText').style.color = '#ff9800'; 
                     document.getElementById('mainTimerText').innerText = "15";
                 } else {
                     timerState = 'starting_hold';
                     activeInspectionPenalty = 'OK';
                     spaceHoldStart = Date.now();
-                    document.getElementById('mainTimerText').style.color = '#d32f2f'; // Turns Red initially
+                    document.getElementById('mainTimerText').style.color = '#d32f2f'; 
                     
                     holdInterval = setInterval(() => {
                         if (Date.now() - spaceHoldStart > 600) {
                             timerState = 'ready';
-                            document.getElementById('mainTimerText').style.color = '#4CAF50'; // Turns Green
+                            document.getElementById('mainTimerText').style.color = '#4CAF50'; 
                             document.getElementById('mainTimerText').innerText = '0.000';
-                            setFocusMode(true); // Engages Focus Mode when green 0.000 is met
+                            setFocusMode(true); 
                             clearInterval(holdInterval);
                         }
                     }, 50);
@@ -368,14 +374,12 @@
                         timerState = 'ready';
                         document.getElementById('mainTimerText').style.color = '#4CAF50';
                         document.getElementById('mainTimerText').innerText = '0.000';
-                        setFocusMode(true); // Engages Focus Mode (already active from 15s, but safe)
+                        setFocusMode(true);
                         clearInterval(holdInterval);
                     }
                 }, 50);
             } 
-            else if (timerState === 'running') { 
-                stopTimer(); 
-            }
+            else if (timerState === 'running') { stopTimer(); }
         });
 
         document.addEventListener('keyup', (e) => {
@@ -390,7 +394,6 @@
                 timerState = 'inspecting';
                 document.getElementById('mainTimerText').style.color = '#ff9800'; 
             } else if (timerState === 'starting_hold') {
-                // Aborted hold before green 0.000 was reached
                 clearInterval(holdInterval);
                 timerState = 'idle';
                 setFocusMode(false); 
@@ -440,12 +443,13 @@
             timerState = 'stopped';
             clearInterval(timerInterval);
             finalTimeMs = Date.now() - startTime;
-            setFocusMode(false); // Disable Focus Mode to reveal UI again!
+            setFocusMode(false);
             saveSolve(activeInspectionPenalty);
         }
 
         function formatTime(ms) { return (ms / 1000).toFixed(3); }
 
+        // --- 4. DATA, RUNNING AVERAGES, & PB TRACKING LOGIC ---
         function saveSolve(autoPenalty = 'OK') {
             solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: document.getElementById('scrambleText').innerText });
             document.getElementById('penalty-controls').style.display = 'flex';
@@ -467,7 +471,7 @@
             let displayStr = formatTime(rawTimeMs);
             document.getElementById('mainTimerText').style.color = '#ffffff';
             if (type === 'DNF') { displayStr = 'DNF'; document.getElementById('mainTimerText').style.color = '#d32f2f'; } 
-            else if (type === '+2') { displayStr = formatTime(rawTimeMs + 2000) + '+'; document.getElementById('mainTimerText').style.color = '#ff9800'; }
+            else if (type === '+2') { displayStr = formatTime(rawTimeMs + 2000) + '+'; document.getElementById('mainTimerText').style.color = '#ffeb3b'; }
             document.getElementById('mainTimerText').innerText = displayStr;
         }
 
@@ -500,20 +504,24 @@
             }
         }
 
-        function calcWCAAverage(n) {
-            if (solves.length < n) return null;
-            let recentSolves = solves.slice(-n);
-            let times = recentSolves.map(s => {
+        // Calculates WCA average (trims best/worst 5%) for any given slice of array
+        function calcAverageOfSlice(slice) {
+            if (slice.length === 0) return null;
+            let times = slice.map(s => {
                 if (s.penalty === 'DNF') return Infinity;
                 if (s.penalty === '+2') return s.timeMs + 2000;
                 return s.timeMs;
             });
+
+            // Automatically sort and trim
             times.sort((a, b) => a - b);
-            let trimCount = Math.ceil(n * 0.05);
-            let countedTimes = times.slice(trimCount, n - trimCount);
-            if (countedTimes.includes(Infinity)) return 'DNF';
+            let trimCount = Math.ceil(slice.length * 0.05);
+            let countedTimes = times.slice(trimCount, slice.length - trimCount);
+            
+            if (countedTimes.includes(Infinity)) return Infinity; // Entire average is DNF
+            
             let sum = countedTimes.reduce((a, b) => a + b, 0);
-            return formatTime(sum / countedTimes.length);
+            return sum / countedTimes.length;
         }
 
         function updateStatsUI() {
@@ -521,7 +529,7 @@
             tbody.innerHTML = '';
             
             if(solves.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="color: #aaa; text-align:center; padding-top:20px;">No solves yet</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="color: #aaa; text-align:center; padding-top:20px;">No solves yet</td></tr>';
                 document.getElementById('statMean').innerText = '--';
                 document.getElementById('statAo5').innerText = '--';
                 document.getElementById('statAo12').innerText = '--';
@@ -529,33 +537,78 @@
                 return;
             }
 
+            // Pre-calculate running stats and find PBs
+            let runningStats = [];
+            let pbSingle = Infinity, pbAo5 = Infinity, pbAo12 = Infinity, pbAo100 = Infinity;
+
+            for (let i = 0; i < solves.length; i++) {
+                let s = solves[i];
+                let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
+                
+                if (actualMs < pbSingle) pbSingle = actualMs;
+
+                let ao5 = i >= 4 ? calcAverageOfSlice(solves.slice(i - 4, i + 1)) : null;
+                let ao12 = i >= 11 ? calcAverageOfSlice(solves.slice(i - 11, i + 1)) : null;
+                let ao100 = i >= 99 ? calcAverageOfSlice(solves.slice(i - 99, i + 1)) : null;
+
+                if (ao5 !== null && ao5 < pbAo5) pbAo5 = ao5;
+                if (ao12 !== null && ao12 < pbAo12) pbAo12 = ao12;
+                if (ao100 !== null && ao100 < pbAo100) pbAo100 = ao100;
+
+                runningStats.push({ single: actualMs, ao5, ao12, ao100 });
+            }
+
             let validTimes = [];
+
+            // Draw Table (Reverse loop so newest is top)
             for(let i = solves.length - 1; i >= 0; i--) {
                 let s = solves[i];
-                let actualMs = s.timeMs;
-                let displayTime = formatTime(actualMs);
-                let color = '#fff';
+                let stats = runningStats[i];
                 
-                if(s.penalty === '+2') { actualMs += 2000; displayTime = formatTime(actualMs) + '+'; color = '#ff9800'; } 
-                else if(s.penalty === 'DNF') { displayTime = 'DNF'; color = '#d32f2f'; }
+                // Format Single string and color
+                let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + 2000 : s.timeMs);
+                if (s.penalty === '+2') displaySingle += '+';
+                if (s.penalty !== 'DNF') validTimes.push(stats.single);
                 
-                if(s.penalty !== 'DNF') validTimes.push(actualMs);
+                let colorSingle = (stats.single === pbSingle && stats.single !== Infinity) ? 'val-pb' : 
+                                  (s.penalty === 'DNF' || s.penalty === '+2') ? (s.penalty==='DNF' ? 'val-dnf' : 'val-plus2') : '';
 
+                // Format Ao5, Ao12, Ao100
+                let displayAo5 = stats.ao5 === null ? '-' : (stats.ao5 === Infinity ? 'DNF' : formatTime(stats.ao5));
+                let colorAo5 = (stats.ao5 === pbAo5 && stats.ao5 !== Infinity) ? 'val-pb' : (stats.ao5 === null ? 'val-dim' : '');
+
+                let displayAo12 = stats.ao12 === null ? '-' : (stats.ao12 === Infinity ? 'DNF' : formatTime(stats.ao12));
+                let colorAo12 = (stats.ao12 === pbAo12 && stats.ao12 !== Infinity) ? 'val-pb' : (stats.ao12 === null ? 'val-dim' : '');
+
+                let displayAo100 = stats.ao100 === null ? '-' : (stats.ao100 === Infinity ? 'DNF' : formatTime(stats.ao100));
+                let colorAo100 = (stats.ao100 === pbAo100 && stats.ao100 !== Infinity) ? 'val-pb' : (stats.ao100 === null ? 'val-dim' : '');
+
+                // Create Row (Title attribute allows users to hover to see the scramble without cluttering screen)
                 let tr = document.createElement('tr');
-                tr.innerHTML = `<td style="color:#aaa;">${i + 1}</td><td style="font-weight:bold; color:${color}">${displayTime}</td><td style="color:${s.penalty==='OK'?'#888':'#fff'}">${s.penalty==='OK'?'-':s.penalty}</td>`;
+                tr.title = `Scramble: ${s.scramble}`;
+                tr.innerHTML = `
+                    <td style="color:#666;">${i + 1}</td>
+                    <td class="${colorSingle}">${displaySingle}</td>
+                    <td class="${colorAo5}">${displayAo5}</td>
+                    <td class="${colorAo12}">${displayAo12}</td>
+                    <td class="${colorAo100}">${displayAo100}</td>
+                `;
                 tbody.appendChild(tr);
             }
 
+            // Update Top Mini Stats
             if(validTimes.length > 0) {
                 let sum = validTimes.reduce((a, b) => a + b, 0);
                 document.getElementById('statMean').innerText = formatTime(sum / validTimes.length);
             } else { document.getElementById('statMean').innerText = 'DNF'; }
 
-            document.getElementById('statAo5').innerText = calcWCAAverage(5) || '--';
-            document.getElementById('statAo12').innerText = calcWCAAverage(12) || '--';
-            document.getElementById('statAo100').innerText = calcWCAAverage(100) || '--';
+            let latestStats = runningStats[runningStats.length - 1];
+            document.getElementById('statAo5').innerText = latestStats.ao5 === null ? '--' : (latestStats.ao5 === Infinity ? 'DNF' : formatTime(latestStats.ao5));
+            document.getElementById('statAo12').innerText = latestStats.ao12 === null ? '--' : (latestStats.ao12 === Infinity ? 'DNF' : formatTime(latestStats.ao12));
+            document.getElementById('statAo100').innerText = latestStats.ao100 === null ? '--' : (latestStats.ao100 === Infinity ? 'DNF' : formatTime(latestStats.ao100));
         }
 
+        // --- 5. EXPORT / IMPORT CSV LOGIC ---
         function exportCSV() {
             if (solves.length === 0) { alert("No solves to export!"); return; }
             let csvContent = "Solve Number,Time (ms),Penalty,Scramble\n";
@@ -590,11 +643,7 @@
                 updateStatsUI();
                 alert(`Successfully imported ${solves.length} solves!`);
                 document.getElementById('importFileInput').value = ''; 
-                
-                document.getElementById('page-data').classList.remove('active');
-                document.getElementById('page-timer').classList.add('active');
-                document.getElementById('pageTitle').innerText = 'Main Timer';
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
             };
             reader.readAsText(file);
         }
