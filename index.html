@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArchSense Timer Web App</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@500;700&family=Roboto+Mono:wght@500;700&family=VT323&display=swap" rel="stylesheet">
-
     <style>
         /* --- DYNAMIC THEME ENGINE VARIABLES --- */
         :root {
@@ -24,7 +22,7 @@
             --ui-opacity: 1.0;
             --focus-fade: 0.5s;
 
-            /* Calculated UI Colors (Set by JS) */
+            /* Calculated UI Colors */
             --ui-panel-bg: rgba(30, 30, 30, var(--ui-opacity));
             --ui-card-bg: rgba(42, 42, 42, var(--ui-opacity));
             --ui-dark-bg: rgba(21, 21, 21, var(--ui-opacity));
@@ -116,10 +114,19 @@
         .val-dim { color: var(--text-muted); }
 
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: transparent; align-items: center; justify-content: space-between; z-index: 100; }
+
+        .mode-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .mode-btn { background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .mode-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
+        .mode-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
+
         .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: var(--ui-panel-bg); border: 1px solid var(--ui-border); border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);}
         .scramble-text { font-size: 1.6rem; font-family: 'Inter', sans-serif; font-weight: bold; color: var(--accent-color); margin: 0; letter-spacing: 2px; }
         .scramble-btn { background: var(--ui-dark-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.85rem; font-weight: bold; }
         .scramble-btn:hover { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+
+        .cube-visualizer { display: grid; grid-template-columns: repeat(12, 12px); grid-template-rows: repeat(9, 12px); gap: 2px; justify-content: center; margin-top: 15px; }
+        .cube-piece { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.5); }
 
         .timer-wrapper { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; transition: transform var(--focus-fade) ease; }
         .timer-display { font-size: calc(clamp(5rem, 12vw, 15rem) * var(--timer-scale)); font-weight: bold; font-family: var(--timer-font); color: var(--timer-color); text-shadow: 0 0 20px var(--timer-glow); transition: transform var(--focus-fade) ease, color 0.1s, font-size 0.3s ease; }
@@ -146,42 +153,23 @@
         .color-picker::-webkit-color-swatch { border: 2px solid var(--ui-border); border-radius: 50%; }
 
         /* --- FOCUS MODE ANIMATIONS --- */
-        .hide-on-focus {
-            transition: opacity var(--focus-fade) ease, filter var(--focus-fade) ease, width var(--focus-fade) ease, padding var(--focus-fade) ease, margin var(--focus-fade) ease, height var(--focus-fade) ease;
-        }
-
-        body.focus-mode .hide-on-focus {
-            opacity: 0;
-            pointer-events: none;
-            filter: blur(10px);
-        }
-
-        /* Smoothly collapse sidebars and headers so Timer Centers perfectly */
+        .hide-on-focus { transition: opacity var(--focus-fade) ease, filter var(--focus-fade) ease, width var(--focus-fade) ease, padding var(--focus-fade) ease, margin var(--focus-fade) ease, height var(--focus-fade) ease; }
+        body.focus-mode .hide-on-focus { opacity: 0; pointer-events: none; filter: blur(10px); }
         body.focus-mode .stats-sidebar { width: 0; min-width: 0; padding-left: 0; padding-right: 0; border: none; }
-        body.focus-mode .scramble-container, body.focus-mode #usb-controls, body.focus-mode #penalty-controls { height: 0; padding: 0; margin: 0; overflow: hidden; }
+        body.focus-mode .scramble-container, body.focus-mode #usb-controls, body.focus-mode #penalty-controls, body.focus-mode .mode-selector { height: 0; padding: 0; margin: 0; overflow: hidden; }
         body.focus-mode .timer-wrapper { transform: scale(1.15); }
 
-        /* Focus Overlays */
         .focus-backdrop { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity var(--focus-fade) ease; }
-
         body.focus-mode.focus-style-black .focus-backdrop { background-color: #000000; opacity: 1; }
         body.focus-mode.focus-style-fade .focus-backdrop { background-color: var(--bg-color); opacity: 1; }
-        body.focus-mode.focus-style-vignette .focus-backdrop {
-            background: radial-gradient(circle, transparent 15%, rgba(0,0,0,0.95) 100%);
-            opacity: 1;
-            animation: breathe-vignette 4s infinite alternate ease-in-out;
-        }
+        body.focus-mode.focus-style-vignette .focus-backdrop { background: radial-gradient(circle, transparent 15%, rgba(0,0,0,0.95) 100%); opacity: 1; animation: breathe-vignette 4s infinite alternate ease-in-out; }
 
-        @keyframes breathe-vignette {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
+        @keyframes breathe-vignette { 0% { opacity: 0.6; } 100% { opacity: 1; } }
 
         .stat-box-large { background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: 8px; flex: 1; min-width: 120px; text-align: center; display: none; }
         .stat-box-large.visible { display: block; }
         .stat-title { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; margin-top: 0;}
 
-        /* Manager Modals */
         .session-list-container { flex-grow: 1; overflow-y: auto; background: var(--ui-dark-bg); border-radius: 8px; margin-bottom: 20px; padding: 10px; text-align: left; }
         .session-row { display: flex; align-items: center; gap: 10px; background: var(--ui-card-bg); padding: 10px; margin-bottom: 8px; border-radius: 6px; }
         .session-row input { flex-grow: 1; background: transparent; border: 1px solid transparent; color: var(--text-color); font-size: 1.1rem; padding: 5px; border-radius: 4px; }
@@ -190,13 +178,11 @@
         .session-row-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
         .session-row-btn.del:hover { background: #d32f2f; color: #fff; }
 
-        /* Checkboxes */
         .scramble-checkboxes { display: flex; gap: 15px; background: var(--ui-card-bg); border: 1px solid var(--ui-border); padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; justify-content: space-around;}
         .scramble-checkboxes label { cursor: pointer; display: flex; align-items: center; font-size: 1.1rem; color: var(--text-color);}
         .scramble-checkboxes input { transform: scale(1.3); margin-right: 8px; accent-color: var(--accent-color);}
         .setting-checkbox { transform: scale(1.5); margin-right: 15px; accent-color: var(--accent-color); }
 
-        /* Offline Sync Modal */
         .offline-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--ui-card-bg); border-radius: 6px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent;}
         .offline-item:hover { border-color: #9C27B0; }
         .offline-item input { transform: scale(1.5); margin-right: 15px; cursor: pointer; accent-color: #9C27B0;}
@@ -259,7 +245,7 @@
             <div id="offlineListContainer" class="session-list-container"></div>
             <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                 <button class="action-btn reset-btn" onclick="closeOfflineModal()">Cancel</button>
-                <button class="action-btn" style="background-color: #9C27B0; color: white;" onclick="importOfflineSolves()">📥 Import Selected</button>
+                <button class="action-btn" style="background-color: #9C27B0; color: white; border-color:transparent;" onclick="importOfflineSolves()">📥 Import Selected</button>
             </div>
         </div>
     </div>
@@ -311,8 +297,17 @@
                 </div>
 
                 <div class="timer-area">
+                    <div class="mode-selector hide-on-focus">
+                        <button class="mode-btn active" onclick="setTrainingMode('standard', this)">Standard</button>
+                        <button class="mode-btn" onclick="setTrainingMode('cross', this)">Cross Trainer</button>
+                        <button class="mode-btn" onclick="setTrainingMode('bld', this)">BLD Mode</button>
+                    </div>
+
                     <div class="scramble-container hide-on-focus" onclick="generateScramble(event)">
                         <p id="scrambleText" class="scramble-text">Loading...</p>
+
+                        <div id="cubeVisualizer" class="cube-visualizer"></div>
+
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 20px;">
                             <button onclick="prevScramble(event)" class="scramble-btn" title="Previous Scramble">⟲ Prev</button>
                             <span id="scrambleHint">Click to generate new scramble</span>
@@ -322,6 +317,7 @@
 
                     <div class="timer-wrapper">
                         <div id="mainTimerText" class="timer-display">0.000</div>
+                        <div id="bldSubText" style="display:none; font-size: 1.2rem; color: var(--text-muted); margin-top: 10px; font-family: var(--timer-font);"></div>
 
                         <div id="usb-controls" class="hide-on-focus">
                             <button id="btnConnectSerial" class="action-btn action-btn-green" onclick="connectWebSerial()" style="display: none;">🔌 Connect to Ghost USB</button>
@@ -342,7 +338,6 @@
 
                 <h3 style="color: var(--accent-color); margin-top: 0; margin-bottom: 15px;">Visuals & Theme Engine</h3>
                 <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 25px 30px; border-radius: 8px; max-width: 600px; margin-bottom: 25px;">
-
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Preset Theme:</span>
                         <select id="selTheme" onchange="applyPresetTheme()" class="theme-select">
@@ -551,7 +546,6 @@
         let serialPort = null;
         let serialReader = null;
 
-        // NEW: Enhanced Application settings with Theme Engine Data
         let appSettings = {
             inspectionEnabled: true,
             inspectionTime: 15,
@@ -565,8 +559,6 @@
             timerUpdateRate: 10,
             batterySaver: true,
             sleepTimeout: 30,
-
-            // Theme Engine Vars
             themeName: 'oled',
             bgColor: '#000000',
             textColor: '#ffffff',
@@ -577,7 +569,7 @@
             timerFont: "'Roboto Mono', monospace",
             timerScale: 1.0,
             uiOpacity: 1.0,
-            focusStyle: 'fade', // fade, vignette, black
+            focusStyle: 'fade',
             focusFadeTime: 0.5
         };
 
@@ -591,6 +583,10 @@
 
         let sessions = [];
         let activeSessionId = null;
+
+        // Training Modes
+        let currentTrainingMode = 'standard'; // 'standard', 'cross', 'bld'
+        let bldMemoTime = 0;
 
         let scrambleHistory = [];
         let scrambleViewIndex = 0;
@@ -621,7 +617,6 @@
             loadDatabase();
         });
 
-        // Theme Brightness Calculator to auto-adjust UI overlays when custom colors are used
         function isLightColor(colorStr) {
             if (!colorStr) return false;
             let hex = colorStr.replace('#', '');
@@ -646,9 +641,8 @@
             r.style.setProperty('--focus-fade', appSettings.focusFadeTime + 's');
             r.style.setProperty('--ui-opacity', appSettings.uiOpacity);
 
-            // Determine if UI Panels should be dark or light
             let isLight = isLightColor(appSettings.bgColor);
-            if(appSettings.bgImage) isLight = false; // Background images default to dark UI for safety
+            if(appSettings.bgImage) isLight = false;
             if(appSettings.themeName === 'bliss') isLight = true;
 
             if (isLight) {
@@ -670,12 +664,10 @@
             const val = document.getElementById('selTheme').value;
             if (val === 'custom') return;
             const t = presetThemes[val];
-
             document.getElementById('valBgColor').value = t.bg;
             document.getElementById('valTextColor').value = t.text;
             document.getElementById('valAccentColor').value = t.acc;
             document.getElementById('valTimerColor').value = t.tColor;
-
             appSettings.themeName = val;
             appSettings.timerGlow = t.glow;
             saveSettings();
@@ -690,7 +682,6 @@
             const saved = localStorage.getItem('archSenseSettings');
             if (saved) { appSettings = { ...appSettings, ...JSON.parse(saved) }; }
 
-            // Load Engine UI
             document.getElementById('chkInspection').checked = appSettings.inspectionEnabled;
             document.getElementById('valInspectionTime').value = appSettings.inspectionTime;
             document.getElementById('valInspGrace').value = appSettings.inspGrace;
@@ -709,7 +700,6 @@
                 });
             }
 
-            // Load Theme UI
             document.getElementById('selTheme').value = appSettings.themeName || 'oled';
             document.getElementById('selFont').value = appSettings.timerFont || "'Roboto Mono', monospace";
             document.getElementById('valTimerScale').value = appSettings.timerScale || 1.0;
@@ -733,14 +723,12 @@
 
         async function saveSettings() {
             let selectedMoves = Array.from(document.querySelectorAll('#scrambleMovesCheckboxes input:checked')).map(cb => cb.value);
-
             if (selectedMoves.length < 2) {
                 alert("You must select at least 2 moves for the scramble generator to work.");
                 loadSettings();
                 return;
             }
 
-            // Engine Settings
             appSettings.inspectionEnabled = document.getElementById('chkInspection').checked;
             appSettings.inspectionTime = parseInt(document.getElementById('valInspectionTime').value) || 15;
             appSettings.inspGrace = parseInt(document.getElementById('valInspGrace').value) || 2;
@@ -754,7 +742,6 @@
             appSettings.batterySaver = document.getElementById('chkBatterySaver').checked;
             appSettings.sleepTimeout = parseInt(document.getElementById('valSleepTimeout').value) || 30;
 
-            // Theme Settings
             appSettings.timerFont = document.getElementById('selFont').value;
             appSettings.timerScale = parseFloat(document.getElementById('valTimerScale').value);
             appSettings.bgColor = document.getElementById('valBgColor').value;
@@ -767,7 +754,6 @@
             appSettings.focusFadeTime = parseFloat(document.getElementById('valFocusFade').value);
 
             updateThemeCSS();
-
             localStorage.setItem('archSenseSettings', JSON.stringify(appSettings));
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
 
@@ -784,15 +770,12 @@
             const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
             const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}\n`;
 
-            console.log("Syncing Config to Board:", configCmd);
             if (serialPort && serialPort.writable) {
                 try {
                     const writer = serialPort.writable.getWriter();
                     await writer.write(new TextEncoder().encode(configCmd));
                     writer.releaseLock();
-                } catch (e) {
-                    console.error("Failed to send config to board", e);
-                }
+                } catch (e) { console.error("Failed to send config to board", e); }
             }
         }
 
@@ -824,8 +807,12 @@
             localStorage.setItem('archSenseActiveSessionId', activeSessionId.toString());
         }
 
-        function getActiveSession() {
-            return sessions.find(s => s.id === activeSessionId) || sessions[0];
+        function getActiveSession() { return sessions.find(s => s.id === activeSessionId) || sessions[0]; }
+
+        function getFilteredSolves() {
+            let session = getActiveSession();
+            if(!session) return [];
+            return session.solves.filter(s => (s.mode || 'standard') === currentTrainingMode);
         }
 
         function updateSessionUI() {
@@ -848,7 +835,7 @@
             persistDatabase();
             updateSessionUI();
             updateStatsUI();
-            scrambleViewIndex = getActiveSession().solves.length;
+            scrambleViewIndex = getFilteredSolves().length;
             updateScrambleDisplay();
         }
 
@@ -920,7 +907,7 @@
                 sessions = sessions.filter(s => s.id !== id);
                 if (activeSessionId === id) activeSessionId = sessions[0].id;
                 persistDatabase(); updateSessionUI(); updateStatsUI();
-                scrambleViewIndex = getActiveSession().solves.length; updateScrambleDisplay(); renderSessionManagerList();
+                scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay(); renderSessionManagerList();
             }
         }
 
@@ -966,8 +953,7 @@
             const panel = document.getElementById('sidePanel');
             const mainContent = document.getElementById('mainContent');
             const toggleBtn = document.getElementById('mainToggleBtn');
-            panel.classList.toggle('open');
-            mainContent.classList.toggle('shifted');
+            panel.classList.toggle('open'); mainContent.classList.toggle('shifted');
             toggleBtn.innerText = panel.classList.contains('open') ? '✖ Close' : '☰ Menu';
         }
 
@@ -986,7 +972,102 @@
             }
         }
 
-        // --- 4. ANIMATED FOCUS MODE ---
+        // --- 4. TRAINING MODES & CUBE VISUALIZER ---
+        function setTrainingMode(mode, btnElement) {
+            currentTrainingMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            scrambleViewIndex = getFilteredSolves().length;
+            updateScrambleDisplay();
+            updateStatsUI();
+            document.getElementById('bldSubText').style.display = 'none';
+            document.getElementById('mainTimerText').innerText = formatTime(0);
+        }
+
+        function createCubeState() {
+            let state = new Array(54);
+            for(let i=0; i<9; i++) state[i] = 0; // U White
+            for(let i=9; i<18; i++) state[i] = 1; // R Red
+            for(let i=18; i<27; i++) state[i] = 2; // F Green
+            for(let i=27; i<36; i++) state[i] = 3; // D Yellow
+            for(let i=36; i<45; i++) state[i] = 4; // L Orange
+            for(let i=45; i<54; i++) state[i] = 5; // B Blue
+            return state;
+        }
+
+        function cycle(s, arr) {
+            let temp = s[arr[3]]; s[arr[3]] = s[arr[2]]; s[arr[2]] = s[arr[1]]; s[arr[1]] = s[arr[0]]; s[arr[0]] = temp;
+        }
+
+        function turnFace(s, face, dir) {
+            for(let i=0; i<dir; i++) {
+                let base = face * 9;
+                cycle(s, [base+0, base+2, base+8, base+6]);
+                cycle(s, [base+1, base+5, base+7, base+3]);
+
+                if(face === 0) { // U
+                    cycle(s, [47, 11, 20, 38]); cycle(s, [46, 10, 19, 37]); cycle(s, [45, 9, 18, 36]);
+                } else if(face === 1) { // R
+                    cycle(s, [8, 45, 35, 26]); cycle(s, [5, 48, 32, 23]); cycle(s, [2, 51, 29, 20]);
+                } else if(face === 2) { // F
+                    cycle(s, [6, 9, 29, 44]); cycle(s, [7, 12, 28, 41]); cycle(s, [8, 15, 27, 38]);
+                } else if(face === 3) { // D
+                    cycle(s, [24, 15, 51, 42]); cycle(s, [25, 16, 52, 43]); cycle(s, [26, 17, 53, 44]);
+                } else if(face === 4) { // L
+                    cycle(s, [0, 18, 27, 53]); cycle(s, [3, 21, 30, 50]); cycle(s, [6, 24, 33, 47]);
+                } else if(face === 5) { // B
+                    cycle(s, [2, 36, 35, 17]); cycle(s, [1, 39, 34, 14]); cycle(s, [0, 42, 33, 11]);
+                }
+            }
+        }
+
+        function applyScrambleToState(scrambleStr) {
+            let s = createCubeState();
+            if(!scrambleStr) return s;
+            let moves = scrambleStr.trim().split(/\s+/);
+            let faces = {'U':0, 'R':1, 'F':2, 'D':3, 'L':4, 'B':5};
+            moves.forEach(m => {
+                if(!m) return;
+                let f = faces[m[0]]; let d = 1;
+                if(m.includes("'")) d = 3; if(m.includes("2")) d = 2;
+                if(f !== undefined) turnFace(s, f, d);
+            });
+            return s;
+        }
+
+        const cubeColors = ['#ffffff', '#f44336', '#4CAF50', '#ffeb3b', '#ff9800', '#2196f3'];
+        function renderCube(state) {
+            let container = document.getElementById('cubeVisualizer');
+            container.innerHTML = '';
+            let isCross = (currentTrainingMode === 'cross');
+            let crossIndices = [4, 1, 3, 5, 7, 46, 37, 10, 19]; // U Center + 4 U edges
+
+            for(let i=0; i<54; i++) {
+                let div = document.createElement('div');
+                div.className = 'cube-piece';
+                div.style.backgroundColor = cubeColors[state[i]];
+                if(isCross && !crossIndices.includes(i)) {
+                    div.style.filter = 'brightness(0.3) grayscale(0.8)';
+                    div.style.borderColor = 'transparent';
+                }
+
+                let face = Math.floor(i/9); let idx = i%9;
+                let row = Math.floor(idx/3); let col = idx%3;
+                let gRow = 0, gCol = 0;
+
+                if(face===0) { gRow=row; gCol=col+3; }
+                else if(face===4) { gRow=row+3; gCol=col; }
+                else if(face===2) { gRow=row+3; gCol=col+3; }
+                else if(face===1) { gRow=row+3; gCol=col+6; }
+                else if(face===5) { gRow=row+3; gCol=col+9; }
+                else if(face===3) { gRow=row+6; gCol=col+3; }
+
+                div.style.gridRow = gRow + 1; div.style.gridColumn = gCol + 1;
+                container.appendChild(div);
+            }
+        }
+
         function setFocusMode(active) {
             if (active) {
                 document.body.classList.add('focus-mode');
@@ -1000,28 +1081,19 @@
         async function connectWebSerial() {
             try {
                 if (!("serial" in navigator)) { alert("Your browser does not support Web Serial. Please use Google Chrome or Microsoft Edge."); return; }
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 115200 });
+                serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 115200 });
+                document.getElementById('btnConnectSerial').style.display = 'none'; syncBoardConfig();
 
-                document.getElementById('btnConnectSerial').style.display = 'none';
-                syncBoardConfig();
-
-                const textDecoder = new TextDecoderStream();
-                const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
+                const textDecoder = new TextDecoderStream(); const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
                 serialReader = textDecoder.readable.getReader();
-
                 let buffer = "";
-                while (true) {
-                    const { value, done } = await serialReader.read();
-                    if (done) break;
-                    buffer += value;
-                    let lines = buffer.split('\n');
-                    buffer = lines.pop();
 
+                while (true) {
+                    const { value, done } = await serialReader.read(); if (done) break;
+                    buffer += value; let lines = buffer.split('\n'); buffer = lines.pop();
                     for (let line of lines) {
                         line = line.trim();
-                        if (line === "DOWN") handlePadDown();
-                        else if (line === "UP") handlePadUp();
+                        if (line === "DOWN") handlePadDown(); else if (line === "UP") handlePadUp();
                     }
                 }
             } catch (error) {
@@ -1052,7 +1124,8 @@
         function processESPTime(timeStr) {
             let ms = 0; let parts = timeStr.split(':');
             if (parts.length === 2) { ms += parseInt(parts[0]) * 60000; ms += parseFloat(parts[1]) * 1000; }
-            else { ms += parseFloat(timeStr) * 1000; }
+            else ms += parseFloat(timeStr) * 1000;
+
             finalTimeMs = Math.round(ms);
             document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
             saveSolve('OK');
@@ -1061,21 +1134,42 @@
         }
 
         function handlePadDown() {
+            if(currentTrainingMode === 'bld') {
+                if(timerState === 'idle' || timerState === 'stopped') {
+                    document.getElementById('penalty-controls').style.display = 'none';
+                    timerState = 'starting_hold'; spaceHoldStart = Date.now();
+                    document.getElementById('mainTimerText').style.color = '#d32f2f';
+                    holdInterval = setInterval(() => {
+                        if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
+                            timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)';
+                            document.getElementById('mainTimerText').innerText = formatTime(0);
+                            setFocusMode(true); clearInterval(holdInterval);
+                        }
+                    }, 50);
+                }
+                else if(timerState === 'bld_memo') {
+                    bldMemoTime = Date.now() - startTime;
+                    timerState = 'bld_exec_pressed';
+                }
+                else if(timerState === 'bld_exec') {
+                    stopTimer();
+                }
+                return;
+            }
+
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
 
                 if (appSettings.inspectionEnabled) {
                     timerState = 'inspecting_starting'; setFocusMode(true);
-                    document.getElementById('mainTimerText').style.color = '#ff9800'; // Override for inspection orange
+                    document.getElementById('mainTimerText').style.color = '#ff9800';
                     document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString();
                 } else {
                     timerState = 'starting_hold'; activeInspectionPenalty = 'OK'; spaceHoldStart = Date.now();
                     document.getElementById('mainTimerText').style.color = '#d32f2f';
-
                     holdInterval = setInterval(() => {
                         if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
-                            timerState = 'ready';
-                            document.getElementById('mainTimerText').style.color = 'var(--accent-color)';
+                            timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)';
                             document.getElementById('mainTimerText').innerText = formatTime(0);
                             setFocusMode(true); clearInterval(holdInterval);
                         }
@@ -1085,11 +1179,9 @@
             else if (timerState === 'inspecting') {
                 timerState = 'inspecting_holding'; spaceHoldStart = Date.now();
                 document.getElementById('mainTimerText').style.color = '#d32f2f';
-
                 holdInterval = setInterval(() => {
                     if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) {
-                        timerState = 'ready';
-                        document.getElementById('mainTimerText').style.color = 'var(--accent-color)';
+                        timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)';
                         document.getElementById('mainTimerText').innerText = formatTime(0);
                         setFocusMode(true); clearInterval(holdInterval);
                     }
@@ -1099,6 +1191,19 @@
         }
 
         function handlePadUp() {
+            if(currentTrainingMode === 'bld') {
+                if(timerState === 'starting_hold') {
+                    clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
+                }
+                else if(timerState === 'ready') {
+                    clearInterval(holdInterval); startTimer();
+                }
+                else if(timerState === 'bld_exec_pressed') {
+                    timerState = 'bld_exec';
+                }
+                return;
+            }
+
             if (timerState === 'inspecting_starting') { timerState = 'inspecting'; startInspection(); }
             else if (timerState === 'inspecting_holding') { clearInterval(holdInterval); timerState = 'inspecting'; document.getElementById('mainTimerText').style.color = '#ff9800'; }
             else if (timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; }
@@ -1131,9 +1236,21 @@
         }
 
         function startTimer() {
-            timerState = 'running'; document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
+            if(currentTrainingMode === 'bld') {
+                timerState = 'bld_memo';
+                document.getElementById('mainTimerText').style.color = '#2196f3'; // Blue Memo
+            } else {
+                timerState = 'running'; document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
+            }
+            document.getElementById('bldSubText').style.display = 'none';
+
             startTime = Date.now();
-            timerInterval = setInterval(() => { document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime); }, appSettings.timerUpdateRate);
+            timerInterval = setInterval(() => {
+                document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime);
+                if(timerState === 'bld_exec' || timerState === 'bld_exec_pressed') {
+                    document.getElementById('mainTimerText').style.color = '#f44336'; // Red Exec
+                }
+            }, appSettings.timerUpdateRate);
         }
 
         function stopTimer() {
@@ -1148,15 +1265,29 @@
             let activeScramble = document.getElementById('scrambleText').innerText;
             if (activeScramble === "Board Active") activeScramble = pendingScramble;
 
-            getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: activeScramble });
+            getActiveSession().solves.push({
+                timeMs: finalTimeMs,
+                penalty: autoPenalty,
+                scramble: activeScramble,
+                mode: currentTrainingMode,
+                memoMs: (currentTrainingMode === 'bld' ? bldMemoTime : undefined)
+            });
+
             document.getElementById('penalty-controls').style.display = 'flex';
             persistDatabase(); applyVisualPenalty(autoPenalty, finalTimeMs); updateSessionUI(); updateStatsUI(); generateScramble();
+
+            if (currentTrainingMode === 'bld') {
+                let bldEl = document.getElementById('bldSubText');
+                bldEl.style.display = 'block';
+                bldEl.innerHTML = `Memo: ${formatTime(bldMemoTime)} | Exec: ${formatTime(finalTimeMs - bldMemoTime)}`;
+            }
         }
 
         function applyPenalty(type) {
-            let solves = getActiveSession().solves; if(solves.length === 0) return;
-            solves[solves.length - 1].penalty = type;
-            persistDatabase(); applyVisualPenalty(type, solves[solves.length - 1].timeMs); updateStatsUI();
+            let fSolves = getFilteredSolves(); if(fSolves.length === 0) return;
+            let lastSolve = fSolves[fSolves.length - 1];
+            lastSolve.penalty = type;
+            persistDatabase(); applyVisualPenalty(type, lastSolve.timeMs); updateStatsUI();
         }
 
         function applyVisualPenalty(type, rawTimeMs) {
@@ -1168,13 +1299,20 @@
         }
 
         function deleteLastSolve() {
-            let solves = getActiveSession().solves; if(solves.length === 0) return;
-            solves.pop(); persistDatabase();
+            let fSolves = getFilteredSolves(); if(fSolves.length === 0) return;
+            let lastSolve = fSolves[fSolves.length - 1];
+
+            let session = getActiveSession();
+            let realIndex = session.solves.lastIndexOf(lastSolve);
+            if (realIndex > -1) session.solves.splice(realIndex, 1);
+
+            persistDatabase();
             document.getElementById('penalty-controls').style.display = 'none';
             document.getElementById('mainTimerText').innerText = formatTime(0);
             document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
+            document.getElementById('bldSubText').style.display = 'none';
             timerState = 'idle'; setFocusMode(false); updateSessionUI(); updateStatsUI();
-            scrambleViewIndex = getActiveSession().solves.length; updateScrambleDisplay();
+            scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
         }
 
         function calcAverageOfSlice(slice) {
@@ -1199,10 +1337,10 @@
         }
 
         function updateStatsUI() {
-            let solves = getActiveSession().solves;
+            let fSolves = getFilteredSolves();
             let tbody = document.getElementById('solveTableBody'); tbody.innerHTML = '';
 
-            if(solves.length === 0) {
+            if(fSolves.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-muted); text-align:center; padding-top:20px;">No solves yet</td></tr>';
                 setUIStat('Solves', '0/0', true); setUIStat('Mean', '--', true); setUIStat('Best', '--', false);
                 setUIStat('Ao5', '--', false); setUIStat('BestAo5', '--', false); setUIStat('Ao12', '--', false); setUIStat('BestAo12', '--', false); setUIStat('Ao100', '--', false); setUIStat('BestAo100', '--', false);
@@ -1212,26 +1350,26 @@
             let runningStats = [];
             let pbSingle = Infinity, pbAo5 = Infinity, pbAo12 = Infinity, pbAo100 = Infinity;
 
-            for (let i = 0; i < solves.length; i++) {
-                let s = solves[i];
+            for (let i = 0; i < fSolves.length; i++) {
+                let s = fSolves[i];
                 let actualMs = s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
                 let isPbSingle = false; if (actualMs !== Infinity && actualMs <= pbSingle) { pbSingle = actualMs; isPbSingle = true; }
 
-                let ao5 = i >= 4 ? calcAverageOfSlice(solves.slice(i - 4, i + 1)) : null;
+                let ao5 = i >= 4 ? calcAverageOfSlice(fSolves.slice(i - 4, i + 1)) : null;
                 let isPbAo5 = false; if (ao5 !== null && ao5 !== Infinity && ao5 <= pbAo5) { pbAo5 = ao5; isPbAo5 = true; }
 
-                let ao12 = i >= 11 ? calcAverageOfSlice(solves.slice(i - 11, i + 1)) : null;
+                let ao12 = i >= 11 ? calcAverageOfSlice(fSolves.slice(i - 11, i + 1)) : null;
                 let isPbAo12 = false; if (ao12 !== null && ao12 !== Infinity && ao12 <= pbAo12) { pbAo12 = ao12; isPbAo12 = true; }
 
-                let ao100 = i >= 99 ? calcAverageOfSlice(solves.slice(i - 99, i + 1)) : null;
+                let ao100 = i >= 99 ? calcAverageOfSlice(fSolves.slice(i - 99, i + 1)) : null;
                 let isPbAo100 = false; if (ao100 !== null && ao100 !== Infinity && ao100 <= pbAo100) { pbAo100 = ao100; isPbAo100 = true; }
 
                 runningStats.push({ single: actualMs, ao5, ao12, ao100, isPbSingle, isPbAo5, isPbAo12, isPbAo100 });
             }
 
             let validTimes = [];
-            for(let i = solves.length - 1; i >= 0; i--) {
-                let s = solves[i]; let stats = runningStats[i];
+            for(let i = fSolves.length - 1; i >= 0; i--) {
+                let s = fSolves[i]; let stats = runningStats[i];
                 let displaySingle = s.penalty === 'DNF' ? 'DNF' : formatTime(s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs);
                 if (s.penalty === '+2') displaySingle += '+';
                 if (s.penalty !== 'DNF') validTimes.push(stats.single);
@@ -1249,7 +1387,7 @@
                 tbody.appendChild(tr);
             }
 
-            setUIStat('Solves', `${validTimes.length}/${solves.length}`, true);
+            setUIStat('Solves', `${validTimes.length}/${fSolves.length}`, true);
             if(validTimes.length > 0) setUIStat('Mean', formatTime(validTimes.reduce((a, b) => a + b, 0) / validTimes.length), true);
             else setUIStat('Mean', 'DNF', true);
 
@@ -1332,7 +1470,7 @@
                                 let sName = sessionNames[key] || `csTimer ${key}`; let archSolves = [];
                                 cstData[key].forEach(solve => {
                                     let penState = 'OK'; if (solve[0][0] === -1) penState = 'DNF'; else if (solve[0][0] > 0) penState = '+2';
-                                    archSolves.push({ timeMs: solve[0][1], penalty: penState, scramble: solve[1] || "" });
+                                    archSolves.push({ timeMs: solve[0][1], penalty: penState, scramble: solve[1] || "", mode: 'standard' });
                                 });
                                 newSessions.push({ id: idCounter++, name: sName, solves: archSolves });
                             }
@@ -1357,7 +1495,7 @@
                             if (cols.length >= 5) {
                                 let sName = cols[0].replace(/(^"|"$)/g, ''); let existingSession = sessions.find(s => s.name === sName);
                                 if (!existingSession) { existingSession = { id: Date.now() + i, name: sName, solves: [] }; sessions.push(existingSession); }
-                                existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, '') });
+                                existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, ''), mode:'standard' });
                             }
                         }
                         activeSessionId = sessions[0].id;
@@ -1366,28 +1504,29 @@
                         for (let i = 1; i < rows.length; i++) {
                             const row = rows[i].trim(); if (!row) continue;
                             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                            if (cols.length >= 4) { importedSolves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, '') }); }
+                            if (cols.length >= 4) { importedSolves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, ''), mode:'standard' }); }
                         }
                         getActiveSession().solves = importedSolves;
                     }
                     persistDatabase(); updateSessionUI(); updateStatsUI(); alert(`Successfully imported CSV!`);
                 }
-                document.getElementById('importFileInput').value = ''; scrambleViewIndex = getActiveSession().solves.length;
+                document.getElementById('importFileInput').value = ''; scrambleViewIndex = getFilteredSolves().length;
                 updateScrambleDisplay(); openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn'));
             };
             reader.readAsText(file);
         }
 
-        // --- 8. SCRAMBLE ENGINE ---
+        // --- 8. SCRAMBLE ENGINE & VISUALIZER ---
         function updateScrambleDisplay() {
-            let session = getActiveSession(); let maxIndex = session ? session.solves.length : 0;
+            let fSolves = getFilteredSolves(); let maxIndex = fSolves.length;
             let displayStr = ""; let hintStr = "";
 
-            if (scrambleViewIndex < maxIndex) { displayStr = session.solves[scrambleViewIndex].scramble; hintStr = `Viewing Solve #${scrambleViewIndex + 1}`; }
+            if (scrambleViewIndex < maxIndex) { displayStr = fSolves[scrambleViewIndex].scramble; hintStr = `Viewing Solve #${scrambleViewIndex + 1}`; }
             else { displayStr = pendingScramble; hintStr = "Click to generate new scramble"; }
 
             document.getElementById('scrambleText').innerText = displayStr;
             let hintEl = document.getElementById('scrambleHint'); if(hintEl) hintEl.innerText = hintStr;
+            renderCube(applyScrambleToState(displayStr));
         }
 
         function generateScramble(e = null) {
@@ -1399,17 +1538,69 @@
                 let currentFace; do { currentFace = Math.floor(Math.random() * faces.length); } while (currentFace === lastFace);
                 lastFace = currentFace; scramble.push(faces[currentFace] + modifiers[Math.floor(Math.random() * modifiers.length)]);
             }
-            pendingScramble = scramble.join('  '); let session = getActiveSession(); scrambleViewIndex = session ? session.solves.length : 0;
+            pendingScramble = scramble.join('  '); scrambleViewIndex = getFilteredSolves().length;
             updateScrambleDisplay();
         }
 
         function prevScramble(e) { if(e) e.stopPropagation(); if (scrambleViewIndex > 0) { scrambleViewIndex--; updateScrambleDisplay(); } }
-        function nextScramble(e) { if(e) e.stopPropagation(); let maxIndex = getActiveSession() ? getActiveSession().solves.length : 0; if (scrambleViewIndex < maxIndex) { scrambleViewIndex++; updateScrambleDisplay(); } else { generateScramble(); } }
+        function nextScramble(e) { if(e) e.stopPropagation(); let maxIndex = getFilteredSolves().length; if (scrambleViewIndex < maxIndex) { scrambleViewIndex++; updateScrambleDisplay(); } else generateScramble(e); }
+
+        function createCubeState() {
+            let state = new Array(54);
+            for(let i=0; i<9; i++) state[i] = 0; for(let i=9; i<18; i++) state[i] = 1;
+            for(let i=18; i<27; i++) state[i] = 2; for(let i=27; i<36; i++) state[i] = 3;
+            for(let i=36; i<45; i++) state[i] = 4; for(let i=45; i<54; i++) state[i] = 5;
+            return state;
+        }
+
+        function cycle(s, arr) { let temp = s[arr[3]]; s[arr[3]] = s[arr[2]]; s[arr[2]] = s[arr[1]]; s[arr[1]] = s[arr[0]]; s[arr[0]] = temp; }
+
+        function turnFace(s, face, dir) {
+            for(let i=0; i<dir; i++) {
+                let base = face * 9;
+                cycle(s, [base+0, base+2, base+8, base+6]); cycle(s, [base+1, base+5, base+7, base+3]);
+                if(face === 0) { cycle(s, [47, 11, 20, 38]); cycle(s, [46, 10, 19, 37]); cycle(s, [45, 9, 18, 36]); }
+                else if(face === 1) { cycle(s, [8, 45, 35, 26]); cycle(s, [5, 48, 32, 23]); cycle(s, [2, 51, 29, 20]); }
+                else if(face === 2) { cycle(s, [6, 9, 29, 44]); cycle(s, [7, 12, 28, 41]); cycle(s, [8, 15, 27, 38]); }
+                else if(face === 3) { cycle(s, [24, 15, 51, 42]); cycle(s, [25, 16, 52, 43]); cycle(s, [26, 17, 53, 44]); }
+                else if(face === 4) { cycle(s, [0, 18, 27, 53]); cycle(s, [3, 21, 30, 50]); cycle(s, [6, 24, 33, 47]); }
+                else if(face === 5) { cycle(s, [2, 36, 35, 17]); cycle(s, [1, 39, 34, 14]); cycle(s, [0, 42, 33, 11]); }
+            }
+        }
+
+        function applyScrambleToState(scrambleStr) {
+            let s = createCubeState(); if(!scrambleStr) return s;
+            let moves = scrambleStr.trim().split(/\s+/); let faces = {'U':0, 'R':1, 'F':2, 'D':3, 'L':4, 'B':5};
+            moves.forEach(m => {
+                if(!m) return; let f = faces[m[0]]; let d = 1;
+                if(m.includes("'")) d = 3; if(m.includes("2")) d = 2;
+                if(f !== undefined) turnFace(s, f, d);
+            });
+            return s;
+        }
+
+        function renderCube(state) {
+            let container = document.getElementById('cubeVisualizer'); container.innerHTML = '';
+            let isCross = (currentTrainingMode === 'cross');
+            let crossIndices = [4, 1, 3, 5, 7, 46, 37, 10, 19];
+            const cubeColors = ['#ffffff', '#f44336', '#4CAF50', '#ffeb3b', '#ff9800', '#2196f3'];
+
+            for(let i=0; i<54; i++) {
+                let div = document.createElement('div'); div.className = 'cube-piece'; div.style.backgroundColor = cubeColors[state[i]];
+                if(isCross && !crossIndices.includes(i)) { div.style.filter = 'brightness(0.3) grayscale(0.8)'; div.style.borderColor = 'transparent'; }
+                let face = Math.floor(i/9); let idx = i%9; let row = Math.floor(idx/3); let col = idx%3; let gRow = 0, gCol = 0;
+
+                if(face===0) { gRow=row; gCol=col+3; } else if(face===4) { gRow=row+3; gCol=col; } else if(face===2) { gRow=row+3; gCol=col+3; }
+                else if(face===1) { gRow=row+3; gCol=col+6; } else if(face===5) { gRow=row+3; gCol=col+9; } else if(face===3) { gRow=row+6; gCol=col+3; }
+
+                div.style.gridRow = gRow + 1; div.style.gridColumn = gCol + 1; container.appendChild(div);
+            }
+        }
 
         // --- 9. PRO OFFLINE SYNC MODAL ---
         function openOfflineImportModal() {
             dummyOfflineSolves = [];
-            for(let i=0; i<8; i++) { dummyOfflineSolves.push({ timeMs: Math.floor(Math.random() * 8000) + 10000, penalty: Math.random() > 0.8 ? '+2' : 'OK', scramble: "U R F D L B U' R' F' D' L' B'" }); }
+            for(let i=0; i<8; i++) { dummyOfflineSolves.push({ timeMs: Math.floor(Math.random() * 8000) + 10000, penalty: Math.random() > 0.8 ? '+2' : 'OK', scramble: "U R F D L B U' R' F' D' L' B'", mode: 'standard' }); }
             const container = document.getElementById('offlineListContainer'); container.innerHTML = '';
 
             dummyOfflineSolves.forEach((solve, idx) => {
@@ -1427,7 +1618,7 @@
             let session = getActiveSession(); let checkboxes = document.querySelectorAll('#offlineListContainer input[type="checkbox"]:checked');
             if (checkboxes.length === 0) { alert("No solves selected."); return; }
             checkboxes.forEach(cb => { session.solves.push(dummyOfflineSolves[parseInt(cb.value)]); });
-            persistDatabase(); updateSessionUI(); updateStatsUI(); scrambleViewIndex = session.solves.length; updateScrambleDisplay();
+            persistDatabase(); updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
             closeOfflineModal(); alert(`Successfully synced ${checkboxes.length} offline solves into ${session.name}!`);
         }
 
