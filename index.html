@@ -208,6 +208,10 @@
         @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
         @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
 
+        /* SENSOR DIAGNOSTICS UI */
+        .sensor-indicator { width: 80px; height: 80px; border-radius: 50%; background-color: var(--ui-dark-bg); border: 4px solid var(--ui-border); transition: all 0.05s ease; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); margin: 0 auto;}
+        .sensor-indicator.active { background-color: var(--accent-color); border-color: var(--accent-color); box-shadow: 0 0 20px var(--accent-color), inset 0 0 10px rgba(255,255,255,0.5); transform: scale(1.05); }
+
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
             #mainContent.shifted { margin-left: 300px; width: calc(100% - 300px); }
@@ -243,7 +247,7 @@
                 </div>
                 <div class="device-card" onclick="selectDevice('keyboard')">
                     <div class="device-img"><svg viewBox="0 0 24 24"><path d="M19,10H17V8H19M19,13H17V11H19M16,10H14V8H16M16,13H14V11H16M13,10H11V8H13M13,13H11V11H13M10,10H8V8H10M10,13H8V11H10M7,10H5V8H7M7,13H5V11H7M20,5H4C2.89,5 2,5.89 2,7V17C2,18.11 2.89,19 4,19H20C21.11,19 22,18.11 22,17V7C22,5.89 21.11,5 20,5M20,17H4V7H20V17M17,17H7V15H17V17Z"/></svg></div>
-                    <h3>Keyboard</h3><p>Debug Mode (Spacebar)</p>
+                    <h3>Keyboard</h3><p>Debug Mode (Left/Right Arrows)</p>
                 </div>
             </div>
         </div>
@@ -600,7 +604,7 @@
 
                 </div>
 
-                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.34</p>
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.40</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -652,6 +656,21 @@
                     </div>
 
                     <button class="reset-btn" onclick="resetSetup()" style="margin-top: 15px;">Reset Hardware Choice</button>
+
+                    <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 30px 0;">
+                    <h3 style="margin-top: 0; color: var(--accent-color);">Hardware Diagnostics</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Real-time sensor monitor. Tap your pads to test sensitivity, or use Left/Right Arrow keys in Keyboard Mode to test this UI.</p>
+                    <div style="display: flex; justify-content: center; gap: 50px; background: var(--ui-dark-bg); padding: 30px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border);">
+                        <div style="text-align: center;">
+                            <div id="diagLeft" class="sensor-indicator"></div>
+                            <div style="margin-top: 15px; color: var(--text-muted); font-weight: bold; font-family: 'Roboto Mono', monospace;">LEFT PAD</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div id="diagRight" class="sensor-indicator"></div>
+                            <div style="margin-top: 15px; color: var(--text-muted); font-weight: bold; font-family: 'Roboto Mono', monospace;">RIGHT PAD</div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -691,6 +710,9 @@
         let inspectStartTime = 0; let inspectionInterval; let activeInspectionPenalty = 'OK';
         let spaceHoldStart = 0; let holdInterval; let dummyOfflineSolves = [];
         let alerted8 = false; let alerted12 = false;
+
+        // Sensor States
+        let simLeft = false; let simRight = false; let wasBothDown = false;
 
         // PB Global Trackers for Projections and Streaks
         let globalPbSingle = Infinity; let globalPbAo5 = Infinity; let globalPbAo12 = Infinity; let globalPbAo100 = Infinity;
@@ -897,6 +919,8 @@
             let sleepFlag = appSettings.batterySaver ? 1 : 0;
             if (isStealth) sleepFlag = 1; // Force screen off
             const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
+
+            // Sending CFG payload. Included SENS config so the Uno can adjust Debounce dynamically.
             const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}|SENS:${appSettings.sensorThreshold}:${appSettings.sensorDebounce}|PROF:${profile.toUpperCase()}\n`;
 
             console.log("Syncing Config to Board:", configCmd);
@@ -1091,34 +1115,96 @@
             else { document.body.classList.remove('focus-mode', 'focus-style-fade', 'focus-style-vignette', 'focus-style-black'); }
         }
 
-        // --- 5. HARDWARE LOGIC (WEB SERIAL & KEYBOARD) ---
+        // --- 5. HARDWARE LOGIC (WEB SERIAL & DIAGNOSTICS) ---
+
+        function updateDiagnosticsUI(l, r) {
+            let diagL = document.getElementById('diagLeft');
+            let diagR = document.getElementById('diagRight');
+            if(diagL) l ? diagL.classList.add('active') : diagL.classList.remove('active');
+            if(diagR) r ? diagR.classList.add('active') : diagR.classList.remove('active');
+        }
+
         async function connectWebSerial() {
             try {
                 if (!("serial" in navigator)) { alert("Your browser does not support Web Serial."); return; }
                 serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 115200 });
                 document.getElementById('btnConnectSerial').style.display = 'none'; syncBoardConfig();
+
                 const textDecoder = new TextDecoderStream(); const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable); serialReader = textDecoder.readable.getReader();
                 let buffer = "";
+
                 while (true) {
                     const { value, done } = await serialReader.read(); if (done) break;
                     buffer += value; let lines = buffer.split('\n'); buffer = lines.pop();
-                    for (let line of lines) { line = line.trim(); if (line === "DOWN") handlePadDown(); else if (line === "UP") handlePadUp(); }
+
+                    for (let line of lines) {
+                        line = line.trim();
+
+                        // Parse new Diagnostic Heartbeat
+                        if (line.startsWith("RAW:L")) {
+                            let lVal = line.charAt(5) === '1';
+                            let rVal = line.charAt(8) === '1';
+
+                            // 1. Light up the Diagnostics UI
+                            updateDiagnosticsUI(lVal, rVal);
+
+                            // 2. Mathematically evaluate timer trigger
+                            let bothNow = lVal && rVal;
+                            if (bothNow && !wasBothDown) {
+                                handlePadDown();
+                                wasBothDown = true;
+                            }
+                            else if (!bothNow && wasBothDown) {
+                                handlePadUp();
+                                wasBothDown = false;
+                            }
+                        }
+                        // Fallbacks for older hardware code
+                        else if (line === "DOWN") handlePadDown();
+                        else if (line === "UP") handlePadUp();
+                    }
                 }
             } catch (error) { serialPort = null; document.getElementById('btnConnectSerial').style.display = 'inline-block'; }
         }
 
+        // --- KEYBOARD SIMULATION & HOOKS ---
         document.addEventListener('keydown', (e) => {
             if (currentDevice === 'esp' && !appSettings.batterySaver) {
                 if ((e.key >= '0' && e.key <= '9') || e.key === '.' || e.key === ':') espInputBuffer += e.key; else if (e.key === 'Enter') { if (espInputBuffer.length > 0) { processESPTime(espInputBuffer); espInputBuffer = ""; } } else if (e.key === 'Backspace' || e.key === 'Escape') espInputBuffer = ""; return;
             }
-            if (currentDevice !== 'keyboard' && e.code === 'Space') return;
-            if (e.code !== 'Space' || e.repeat) return; handlePadDown();
+
+            // KEYBOARD DIAGNOSTIC MODE
+            if (currentDevice === 'keyboard') {
+                if (e.code === 'ArrowLeft') simLeft = true;
+                if (e.code === 'ArrowRight') simRight = true;
+                if (e.code === 'Space') { simLeft = true; simRight = true; } // Space hits both pads
+
+                updateDiagnosticsUI(simLeft, simRight);
+
+                let bothNow = simLeft && simRight;
+                if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
+            } else {
+                // If hardware is connected, allow Spacebar as emergency start/stop, but don't repeat
+                if (e.code === 'Space' && !e.repeat) handlePadDown();
+            }
         });
 
         document.addEventListener('keyup', (e) => {
             if (currentDevice === 'esp' && !appSettings.batterySaver) return;
-            if (currentDevice !== 'keyboard' && e.code === 'Space') return;
-            if (e.code !== 'Space') return; handlePadUp();
+
+            // KEYBOARD DIAGNOSTIC MODE
+            if (currentDevice === 'keyboard') {
+                if (e.code === 'ArrowLeft') simLeft = false;
+                if (e.code === 'ArrowRight') simRight = false;
+                if (e.code === 'Space') { simLeft = false; simRight = false; }
+
+                updateDiagnosticsUI(simLeft, simRight);
+
+                let bothNow = simLeft && simRight;
+                if (!bothNow && wasBothDown) { handlePadUp(); wasBothDown = false; }
+            } else {
+                if (e.code === 'Space') handlePadUp();
+            }
         });
 
         function processESPTime(timeStr) {
