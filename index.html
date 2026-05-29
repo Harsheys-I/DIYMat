@@ -121,7 +121,7 @@
 
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: transparent; align-items: center; justify-content: space-between; z-index: 100; }
 
-        .mode-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .mode-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;}
         .mode-btn { backdrop-filter: blur(var(--ui-blur)); background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
         .mode-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
         .mode-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
@@ -211,6 +211,31 @@
         /* SENSOR DIAGNOSTICS UI */
         .sensor-indicator { width: 80px; height: 80px; border-radius: 50%; background-color: var(--ui-dark-bg); border: 4px solid var(--ui-border); transition: all 0.05s ease; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); margin: 0 auto;}
         .sensor-indicator.active { background-color: var(--accent-color); border-color: var(--accent-color); box-shadow: 0 0 20px var(--accent-color), inset 0 0 10px rgba(255,255,255,0.5); transform: scale(1.05); }
+
+        /* OLED DESIGNER UI */
+        .oled-preview-box {
+            background: #000000;
+            border: 2px solid var(--ui-border);
+            border-radius: 8px;
+            width: 100%; max-width: 384px; height: 96px;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
+            display: flex; flex-direction: column; justify-content: center;
+            user-select: none;
+        }
+        .oled-text-large { font-family: 'Roboto Mono', monospace; font-size: 42px; color: #00ffff; text-align: center; text-shadow: 0 0 8px rgba(0,255,255,0.6); line-height: 1; margin-top: 5px; font-weight: bold;}
+        .oled-text-small { font-family: 'Roboto Mono', monospace; font-size: 14px; color: #00ffff; text-align: center; text-shadow: 0 0 5px rgba(0,255,255,0.6); margin-top: 8px; font-weight: bold; letter-spacing: 1px;}
+
+        .oled-canvas {
+            background: #000;
+            width: 100%; max-width: 384px; height: 96px;
+            cursor: crosshair;
+            border: 2px solid var(--ui-border);
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1);
+            touch-action: none;
+        }
 
         @media (max-width: 800px) {
             #page-timer.active { flex-direction: column; overflow-y: auto; }
@@ -339,6 +364,7 @@
                         <button class="mode-btn active" onclick="setTrainingMode('standard', this)">Standard</button>
                         <button class="mode-btn" onclick="setTrainingMode('cross', this)">Cross Trainer</button>
                         <button class="mode-btn" onclick="setTrainingMode('bld', this)">BLD Mode</button>
+                        <button class="mode-btn" onclick="setTrainingMode('splits', this)">Splits (CFOP)</button>
                     </div>
 
                     <div class="scramble-container hide-on-focus" onclick="generateScramble(event)">
@@ -386,6 +412,12 @@
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px;">Frequency of solve times (1-second buckets)</p>
                         <div class="chart-container"><canvas id="distChart"></canvas></div>
                     </div>
+                </div>
+
+                <div id="splitsChartContainer" style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border); margin-top: 20px; display: none;">
+                    <h3 style="margin-top:0; color: var(--accent-color);">CFOP Phase Splits Analysis</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px;">Breakdown of time spent per phase (Requires "Splits Mode" solves with exactly 3 taps before stopping).</p>
+                    <div class="chart-container"><canvas id="splitsChart"></canvas></div>
                 </div>
 
                 <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border); margin-top: 20px;">
@@ -600,11 +632,47 @@
                             <span>Sleep Timeout (seconds):</span>
                             <input type="number" id="valSleepTimeout" min="5" max="300" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                         </div>
+
+                        <div id="proOledSettings" style="display:none;">
+                            <hr style="border-top: 1px solid var(--ui-border); margin: 25px 0;">
+                            <h3 style="color: var(--accent-color); margin-bottom: 10px;">PRO: OLED Display Designer</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0; margin-bottom: 20px;">Customize what your ESP32 shows on the physical 0.91" screen.</p>
+
+                            <div style="display:flex; justify-content:center; gap: 10px; margin-bottom: 20px;">
+                                <button class="mode-btn active" id="btnOledLayout" onclick="switchOledTab('layout')">Solve Layout</button>
+                                <button class="mode-btn" id="btnOledLogo" onclick="switchOledTab('logo')">Boot Logo</button>
+                            </div>
+
+                            <div id="oledTabLayout">
+                                <div class="oled-preview-box">
+                                    <div class="oled-text-large">12.345</div>
+                                    <div class="oled-text-small" id="oledPreviewLine2">Ao5: 14.502</div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; font-size: 1.1rem;">
+                                    <span>Secondary Line Display:</span>
+                                    <select id="selOledLine2" class="theme-select" onchange="updateOledPreview(); debouncedSave();">
+                                        <option value="ao5">Current Ao5</option>
+                                        <option value="best">Session Best</option>
+                                        <option value="scramble">Last Scramble</option>
+                                        <option value="blank">Blank (Clean)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="oledTabLogo" style="display:none; text-align: center;">
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0;">Draw your custom boot logo (128x32). Click/Drag to draw, Right-Click to erase.</p>
+                                <canvas id="bootLogoCanvas" class="oled-canvas" width="128" height="32" oncontextmenu="return false;"></canvas>
+                                <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px;">
+                                    <button class="action-btn" onclick="clearOledCanvas()">🗑️ Clear</button>
+                                    <button class="action-btn action-btn-green" onclick="syncOledToBoard()">📥 Sync Layout & Logo to Board</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
 
-                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.40</p>
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.50 (Splits Mode)</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -691,7 +759,8 @@
             bgImage: '', timerFont: "'Roboto Mono', monospace", timerScale: 1.0, uiOpacity: 1.0,
             uiBlur: 10, uiRadius: 8, focusStyle: 'fade', focusFadeTime: 0.5,
             cubeTop: 'white', cubeFront: 'green',
-            quickSettings: [] // Array of {id, label, type}
+            oledLine2: 'ao5', oledBootLogoData: null,
+            quickSettings: []
         };
 
         const presetThemes = {
@@ -711,8 +780,17 @@
         let spaceHoldStart = 0; let holdInterval; let dummyOfflineSolves = [];
         let alerted8 = false; let alerted12 = false;
 
+        // Splits Mode Data
+        let currentSplits = [];
+        let splitDebounceTime = 0;
+
         // Sensor States
         let simLeft = false; let simRight = false; let wasBothDown = false;
+
+        // OLED Studio
+        let oledCanvasInitialized = false; let oledCanvas, oledCtx;
+        let isDrawingOled = false; let drawModeOled = 1;
+        let lastDrawX = 0, lastDrawY = 0;
 
         // PB Global Trackers for Projections and Streaks
         let globalPbSingle = Infinity; let globalPbAo5 = Infinity; let globalPbAo12 = Infinity; let globalPbAo100 = Infinity;
@@ -863,6 +941,9 @@
 
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
 
+            document.getElementById('selOledLine2').value = appSettings.oledLine2 || 'ao5';
+            updateOledPreview();
+
             // Initialize Stars
             document.querySelectorAll('.star-btn').forEach(btn => {
                 let id = btn.getAttribute('data-id');
@@ -907,6 +988,8 @@
             appSettings.cubeTop = document.getElementById('selCubeTop').value;
             appSettings.cubeFront = document.getElementById('selCubeFront').value;
 
+            appSettings.oledLine2 = document.getElementById('selOledLine2').value;
+
             updateThemeCSS(); localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
             if(timerState === 'idle' || timerState === 'stopped') document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
             updateStatsUI(); updateScrambleDisplay(); syncBoardConfig();
@@ -920,7 +1003,6 @@
             if (isStealth) sleepFlag = 1; // Force screen off
             const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
 
-            // Sending CFG payload. Included SENS config so the Uno can adjust Debounce dynamically.
             const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}|SENS:${appSettings.sensorThreshold}:${appSettings.sensorDebounce}|PROF:${profile.toUpperCase()}\n`;
 
             console.log("Syncing Config to Board:", configCmd);
@@ -1013,12 +1095,16 @@
             if (currentDevice === 'ghost') {
                 if (!serialPort) usbBtn.style.display = 'inline-block'; hwBlock.style.display = 'block'; lblSaver.innerText = 'Turn off Arduino LEDs (Battery Saver)';
                 if (dynamicSettings && softwareAnchor) softwareAnchor.appendChild(dynamicSettings);
+                document.getElementById('proOledSettings').style.display = 'none';
             } else if (currentDevice === 'esp') {
                 hwBlock.style.display = 'block'; lblSaver.innerText = 'Turn off OLED Screen (Battery Saver)'; offlineBtn.style.display = 'inline-block';
                 if (dynamicSettings && hardwareAnchor) hardwareAnchor.appendChild(dynamicSettings);
+                document.getElementById('proOledSettings').style.display = 'block';
+                initOledCanvas(); // Boot up the Canvas Designer
                 if(!appSettings.batterySaver) document.getElementById('mainTimerText').innerText = "Board Active"; else document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
             } else {
                 if (dynamicSettings && softwareAnchor) softwareAnchor.appendChild(dynamicSettings);
+                document.getElementById('proOledSettings').style.display = 'none';
                 document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
             }
         }
@@ -1115,13 +1201,31 @@
             else { document.body.classList.remove('focus-mode', 'focus-style-fade', 'focus-style-vignette', 'focus-style-black'); }
         }
 
-        // --- 5. HARDWARE LOGIC (WEB SERIAL & DIAGNOSTICS) ---
+        // --- 5. HARDWARE LOGIC (WEB SERIAL, DIAGNOSTICS, SPLITS) ---
 
         function updateDiagnosticsUI(l, r) {
             let diagL = document.getElementById('diagLeft');
             let diagR = document.getElementById('diagRight');
             if(diagL) l ? diagL.classList.add('active') : diagL.classList.remove('active');
             if(diagR) r ? diagR.classList.add('active') : diagR.classList.remove('active');
+        }
+
+        function handleSinglePadHit() {
+            if (!document.getElementById('page-timer').classList.contains('active')) return;
+            if (timerState === 'running' && currentTrainingMode === 'splits') {
+                let now = Date.now();
+                if (now - splitDebounceTime > 500) { // 500ms debounce to prevent accidental double-taps
+                    splitDebounceTime = now;
+                    let splitTimeMs = now - startTime;
+                    if (currentSplits.length < 3) {
+                        currentSplits.push(splitTimeMs);
+                        let bldEl = document.getElementById('bldSubText');
+                        bldEl.style.display = 'block';
+                        let phase = currentSplits.length === 1 ? 'Cross' : (currentSplits.length === 2 ? 'F2L' : 'OLL');
+                        bldEl.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">${phase} Split:</span> ${formatTime(splitTimeMs)}`;
+                    }
+                }
+            }
         }
 
         async function connectWebSerial() {
@@ -1140,16 +1244,16 @@
                     for (let line of lines) {
                         line = line.trim();
 
-                        // Parse new Diagnostic Heartbeat
+                        // Parse Diagnostic Heartbeat
                         if (line.startsWith("RAW:L")) {
                             let lVal = line.charAt(5) === '1';
                             let rVal = line.charAt(8) === '1';
 
-                            // 1. Light up the Diagnostics UI
                             updateDiagnosticsUI(lVal, rVal);
 
-                            // 2. Mathematically evaluate timer trigger
                             let bothNow = lVal && rVal;
+                            let oneNow = lVal || rVal;
+
                             if (bothNow && !wasBothDown) {
                                 handlePadDown();
                                 wasBothDown = true;
@@ -1157,6 +1261,11 @@
                             else if (!bothNow && wasBothDown) {
                                 handlePadUp();
                                 wasBothDown = false;
+                            }
+
+                            // Trigger Splits Mode
+                            if (!bothNow && oneNow && timerState === 'running') {
+                                handleSinglePadHit();
                             }
                         }
                         // Fallbacks for older hardware code
@@ -1182,9 +1291,12 @@
                 updateDiagnosticsUI(simLeft, simRight);
 
                 let bothNow = simLeft && simRight;
+                let oneNow = simLeft || simRight;
+
                 if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
+                if (!bothNow && oneNow && timerState === 'running') { handleSinglePadHit(); }
+
             } else {
-                // If hardware is connected, allow Spacebar as emergency start/stop, but don't repeat
                 if (e.code === 'Space' && !e.repeat) handlePadDown();
             }
         });
@@ -1192,7 +1304,6 @@
         document.addEventListener('keyup', (e) => {
             if (currentDevice === 'esp' && !appSettings.batterySaver) return;
 
-            // KEYBOARD DIAGNOSTIC MODE
             if (currentDevice === 'keyboard') {
                 if (e.code === 'ArrowLeft') simLeft = false;
                 if (e.code === 'ArrowRight') simRight = false;
@@ -1215,6 +1326,8 @@
         }
 
         function handlePadDown() {
+            if (!document.getElementById('page-timer').classList.contains('active')) return;
+
             if(currentTrainingMode === 'bld') {
                 if(timerState === 'idle' || timerState === 'stopped') {
                     document.getElementById('penalty-controls').style.display = 'none'; timerState = 'starting_hold'; spaceHoldStart = Date.now();
@@ -1239,6 +1352,8 @@
         }
 
         function handlePadUp() {
+            if (!document.getElementById('page-timer').classList.contains('active')) return;
+
             if(currentTrainingMode === 'bld') {
                 if(timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; } else if(timerState === 'ready') { clearInterval(holdInterval); startTimer(); } else if(timerState === 'bld_exec_pressed') { timerState = 'bld_exec'; } return;
             }
@@ -1274,14 +1389,34 @@
         function startTimer() {
             if(currentTrainingMode === 'bld') { timerState = 'bld_memo'; document.getElementById('mainTimerText').style.color = '#2196f3'; }
             else { timerState = 'running'; document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; }
-            document.getElementById('bldSubText').style.display = 'none'; startTime = Date.now();
+            document.getElementById('bldSubText').style.display = 'none';
+
+            currentSplits = []; // Reset Splits
+            splitDebounceTime = 0;
+            startTime = Date.now();
+
             timerInterval = setInterval(() => {
                 document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime);
                 if(timerState === 'bld_exec' || timerState === 'bld_exec_pressed') { document.getElementById('mainTimerText').style.color = '#f44336'; }
             }, appSettings.timerUpdateRate);
         }
 
-        function stopTimer() { timerState = 'stopped'; clearInterval(timerInterval); finalTimeMs = Date.now() - startTime; setFocusMode(false); saveSolve(activeInspectionPenalty); }
+        function stopTimer() {
+            timerState = 'stopped';
+            clearInterval(timerInterval);
+            finalTimeMs = Date.now() - startTime;
+            setFocusMode(false);
+
+            // Clean up accidental split (if one hand hit pad a fraction of a second before the other to stop)
+            if (currentTrainingMode === 'splits' && currentSplits.length > 0) {
+                if (finalTimeMs - currentSplits[currentSplits.length - 1] < 300) {
+                    currentSplits.pop();
+                }
+            }
+
+            saveSolve(activeInspectionPenalty);
+        }
+
         function formatTime(ms) { return (ms / 1000).toFixed(appSettings.timerDecimals); }
 
         // --- 6. STATS & PB TRACKING ---
@@ -1289,13 +1424,24 @@
             let activeScramble = document.getElementById('scrambleText').innerText; if (activeScramble === "Board Active") activeScramble = pendingScramble;
             let oldPbSingle = globalPbSingle; let oldPbAo5 = globalPbAo5;
 
-            getActiveSession().solves.push({ timeMs: finalTimeMs, penalty: autoPenalty, scramble: activeScramble, mode: currentTrainingMode, memoMs: (currentTrainingMode === 'bld' ? bldMemoTime : undefined) });
+            getActiveSession().solves.push({
+                timeMs: finalTimeMs,
+                penalty: autoPenalty,
+                scramble: activeScramble,
+                mode: currentTrainingMode,
+                memoMs: (currentTrainingMode === 'bld' ? bldMemoTime : undefined),
+                splits: (currentTrainingMode === 'splits' ? [...currentSplits] : undefined)
+            });
+
             document.getElementById('penalty-controls').style.display = 'flex'; persistDatabase(); applyVisualPenalty(autoPenalty, finalTimeMs);
             updateSessionUI(); updateStatsUI(); generateScramble();
 
             if (currentTrainingMode === 'bld') {
                 let bldEl = document.getElementById('bldSubText'); bldEl.style.display = 'block';
                 bldEl.innerHTML = `Memo: ${formatTime(bldMemoTime)} | Exec: ${formatTime(finalTimeMs - bldMemoTime)}`;
+            } else if (currentTrainingMode === 'splits') {
+                let bldEl = document.getElementById('bldSubText'); bldEl.style.display = 'block';
+                bldEl.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">Final PLL Split Recorded.</span>`;
             }
 
             // Milestone Checks (Streaks & PBs)
@@ -1334,7 +1480,7 @@
                 activeInspectionPenalty = newLast.penalty;
                 applyVisualPenalty(newLast.penalty, newLast.timeMs);
                 document.getElementById('penalty-controls').style.display = 'flex';
-                timerState = 'stopped'; // Allows cascading deletions
+                timerState = 'stopped';
             } else {
                 document.getElementById('penalty-controls').style.display = 'none';
                 document.getElementById('mainTimerText').innerText = formatTime(0);
@@ -1482,6 +1628,47 @@
                 data: { labels: bLabels.map(l => l + 's'), datasets: [{ label: 'Frequency', data: bData, backgroundColor: appSettings.accentColor, borderRadius: 4 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{color: '#888'} }, y: { ticks:{color: '#888'}, beginAtZero: true } } }
             });
+
+            // Chart 3: NEW Splits Stacked Bar
+            let ctxSplits = document.getElementById('splitsChart');
+            if (ctxSplits) {
+                // Filter only solves with exactly 3 splits (CFOP has 3 splits + final stop)
+                let splitSolves = fSolves.filter(s => s.mode === 'splits' && s.splits && s.splits.length === 3 && s.penalty !== 'DNF');
+                let splitsContainer = document.getElementById('splitsChartContainer');
+
+                if (window.splitsChartInstance) window.splitsChartInstance.destroy();
+
+                if (splitSolves.length > 0) {
+                    splitsContainer.style.display = 'block';
+                    let sLabels = splitSolves.map((_, i) => `Solve ${i+1}`);
+                    let cross = splitSolves.map(s => s.splits[0] / 1000);
+                    let f2l = splitSolves.map(s => (s.splits[1] - s.splits[0]) / 1000);
+                    let oll = splitSolves.map(s => (s.splits[2] - s.splits[1]) / 1000);
+                    let pll = splitSolves.map(s => ((s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) - s.splits[2]) / 1000);
+
+                    window.splitsChartInstance = new Chart(ctxSplits.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: sLabels,
+                            datasets: [
+                                { label: 'Cross', data: cross, backgroundColor: '#4CAF50' },
+                                { label: 'F2L', data: f2l, backgroundColor: '#2196F3' },
+                                { label: 'OLL', data: oll, backgroundColor: '#FFC107' },
+                                { label: 'PLL', data: pll, backgroundColor: '#F44336' }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { tooltip: { mode: 'index', intersect: false }, legend: { labels: { color: '#aaa' } } },
+                            scales: { x: { stacked: true, ticks:{color:'#888'} }, y: { stacked: true, ticks:{color:'#888'} } }
+                        }
+                    });
+                } else {
+                    splitsContainer.style.display = 'none';
+                }
+            }
+
 
             // Projections Logic
             let projAo5Str = "--";
@@ -1673,6 +1860,156 @@
 
         function prevScramble(e) { if(e) e.stopPropagation(); if (scrambleViewIndex > 0) { scrambleViewIndex--; updateScrambleDisplay(); } }
         function nextScramble(e) { if(e) e.stopPropagation(); let maxIndex = getFilteredSolves().length; if (scrambleViewIndex < maxIndex) { scrambleViewIndex++; updateScrambleDisplay(); } else { generateScramble(); } }
+
+        // --- 11. OLED DESIGNER LOGIC (REWRITTEN CANVAS DRAWING) ---
+        function switchOledTab(tab) {
+            document.getElementById('oledTabLayout').style.display = tab === 'layout' ? 'block' : 'none';
+            document.getElementById('oledTabLogo').style.display = tab === 'logo' ? 'block' : 'none';
+            document.getElementById('btnOledLayout').classList.toggle('active', tab === 'layout');
+            document.getElementById('btnOledLogo').classList.toggle('active', tab === 'logo');
+        }
+
+        function updateOledPreview() {
+            let val = document.getElementById('selOledLine2').value;
+            let text = "";
+            if (val === 'ao5') text = "Ao5: 14.502";
+            else if (val === 'best') text = "Best:  9.841";
+            else if (val === 'scramble') text = "R U R' U' ...";
+            else text = "";
+            document.getElementById('oledPreviewLine2').innerText = text;
+        }
+
+        function getOledCoords(e) {
+            let rect = oledCanvas.getBoundingClientRect();
+            let scaleX = oledCanvas.width / rect.width;
+            let scaleY = oledCanvas.height / rect.height;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function drawLine(e, isStart) {
+            let {x, y} = getOledCoords(e);
+
+            oledCtx.strokeStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000';
+            oledCtx.fillStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000';
+
+            // This disables "perfect pixel" and gives a smooth vector stroke
+            oledCtx.lineWidth = 2;
+            oledCtx.lineCap = 'round';
+            oledCtx.lineJoin = 'round';
+
+            if (isStart) {
+                // If it's a single click/tap, draw a perfect circle
+                oledCtx.beginPath();
+                oledCtx.arc(x, y, oledCtx.lineWidth / 2, 0, Math.PI * 2);
+                oledCtx.fill();
+            } else {
+                // Connect the last point to the new point smoothly
+                oledCtx.beginPath();
+                oledCtx.moveTo(lastDrawX, lastDrawY);
+                oledCtx.lineTo(x, y);
+                oledCtx.stroke();
+            }
+
+            lastDrawX = x;
+            lastDrawY = y;
+        }
+
+        function initOledCanvas() {
+            if(oledCanvasInitialized) return;
+            oledCanvas = document.getElementById('bootLogoCanvas');
+            oledCtx = oledCanvas.getContext('2d', {willReadFrequently: true});
+            oledCtx.fillStyle = '#000000';
+            oledCtx.fillRect(0, 0, 128, 32);
+
+            if (appSettings.oledBootLogoData) {
+                let img = new Image();
+                img.onload = () => { oledCtx.drawImage(img, 0, 0); };
+                img.src = appSettings.oledBootLogoData;
+            }
+
+            // Mouse Events
+            oledCanvas.addEventListener('mousedown', (e) => {
+                isDrawingOled = true;
+                drawModeOled = e.button === 2 ? 0 : 1;
+                drawLine(e, true);
+            });
+            oledCanvas.addEventListener('mousemove', (e) => {
+                if(isDrawingOled) drawLine(e, false);
+            });
+            window.addEventListener('mouseup', () => {
+                if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); }
+            });
+
+            // Touch Events (Mobile)
+            oledCanvas.addEventListener('touchstart', (e) => {
+                isDrawingOled = true;
+                drawModeOled = 1;
+                drawLine(e, true);
+            }, {passive: false});
+            oledCanvas.addEventListener('touchmove', (e) => {
+                if(isDrawingOled) { e.preventDefault(); drawLine(e, false); }
+            }, {passive: false});
+            window.addEventListener('touchend', () => {
+                if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); }
+            });
+
+            oledCanvasInitialized = true;
+        }
+
+        function clearOledCanvas() {
+            oledCtx.fillStyle = '#000000';
+            oledCtx.fillRect(0, 0, 128, 32);
+            appSettings.oledBootLogoData = oledCanvas.toDataURL();
+            debouncedSave();
+        }
+
+        function getOLEDHex() {
+            let imgData = oledCtx.getImageData(0, 0, 128, 32).data;
+            let hexStr = "";
+            for(let page=0; page<4; page++) {
+                for(let x=0; x<128; x++) {
+                    let byte = 0;
+                    for(let b=0; b<8; b++) {
+                        let y = page*8 + b;
+                        let idx = (y*128 + x) * 4;
+                        if(imgData[idx] > 128) byte |= (1 << b);
+                    }
+                    let h = byte.toString(16).toUpperCase();
+                    if(h.length < 2) h = "0" + h;
+                    hexStr += h;
+                }
+            }
+            return hexStr;
+        }
+
+        async function syncOledToBoard() {
+            if (!serialPort || !serialPort.writable) {
+                showToast("🔴 Not connected to board!");
+                return;
+            }
+
+            let line2Val = document.getElementById('selOledLine2').value;
+            let configCmd = `CFG:OLED:LINE2:${line2Val.toUpperCase()}\n`;
+
+            let hexData = getOLEDHex();
+            let logoCmd = `CFG:LOGO:${hexData}\n`;
+
+            try {
+                const writer = serialPort.writable.getWriter();
+                await writer.write(new TextEncoder().encode(configCmd));
+                await writer.write(new TextEncoder().encode(logoCmd));
+                writer.releaseLock();
+                showToast("⚙️ Display & Boot Logo Synced!");
+            } catch (e) {
+                console.error("Failed to sync OLED config", e);
+                showToast("🔴 Sync Failed!");
+            }
+        }
 
     </script>
 </body>
