@@ -24,6 +24,8 @@
 
             --bg-image: none;
             --ui-opacity: 1.0;
+            --ui-blur: 10px;
+            --ui-radius: 8px;
             --focus-fade: 0.5s;
 
             /* Calculated UI Colors */
@@ -48,14 +50,14 @@
         }
 
         /* Modal Styles */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background-color: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 2.5rem; border-radius: 12px; text-align: center; max-width: 800px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(var(--ui-blur)); justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background-color: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 2.5rem; border-radius: var(--ui-radius); text-align: center; max-width: 800px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; display: flex; flex-direction: column; }
         h2 { margin-top: 0; font-size: 2rem; color: var(--text-color); }
         p.subtitle { color: var(--text-muted); margin-bottom: 2rem; }
 
         /* Device Grid */
         .device-grid { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;}
-        .device-card { background-color: var(--ui-card-bg); border: 2px solid transparent; border-radius: 8px; padding: 1.5rem; cursor: pointer; transition: all 0.2s ease; flex: 1; min-width: 200px; }
+        .device-card { background-color: var(--ui-card-bg); border: 2px solid transparent; border-radius: var(--ui-radius); padding: 1.5rem; cursor: pointer; transition: all 0.2s ease; flex: 1; min-width: 200px; }
         .device-card:hover { border-color: var(--accent-color); transform: translateY(-5px); background-color: var(--ui-panel-bg); }
         .device-img svg { width: 60px; height: 60px; fill: var(--text-muted); transition: fill 0.2s ease; margin-bottom: 1rem; }
         .device-card:hover .device-img svg { fill: var(--accent-color); }
@@ -66,7 +68,7 @@
         #mainApp { display: none; width: 100%; height: 100vh; position: relative; }
 
         /* Sliding Panel */
-        #sidePanel { position: fixed; top: 0; left: -400px; width: 400px; height: 100%; background-color: var(--ui-panel-bg); border-right: 1px solid var(--ui-border); transition: left 0.3s ease-in-out; z-index: 1500; display: flex; flex-direction: column; backdrop-filter: blur(10px); }
+        #sidePanel { position: fixed; top: 0; left: -400px; width: 400px; height: 100%; background-color: var(--ui-panel-bg); border-right: 1px solid var(--ui-border); transition: left 0.3s ease-in-out, transform var(--focus-fade) ease; z-index: 1500; display: flex; flex-direction: column; backdrop-filter: blur(var(--ui-blur)); }
         #sidePanel.open { left: 0; }
         .panel-header { padding: 20px; background: var(--ui-dark-bg); display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--ui-border); }
         .nav-menu { display: flex; flex-direction: column; padding: 10px 0; }
@@ -78,7 +80,7 @@
         #mainContent { margin-left: 0; width: 100%; height: 100vh; display: flex; flex-direction: column; transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out; position: relative;}
         #mainContent.shifted { margin-left: 400px; width: calc(100% - 400px); }
 
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background-color: var(--ui-panel-bg); border-bottom: 1px solid var(--ui-border); z-index: 100; backdrop-filter: blur(10px); }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background-color: var(--ui-panel-bg); border-bottom: 1px solid var(--ui-border); z-index: 100; backdrop-filter: blur(var(--ui-blur)); }
         .menu-btn { background: var(--ui-dark-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 10px 15px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; width: 100px; text-align: center; }
         .menu-btn:hover { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
         .hw-status { display: flex; gap: 15px; font-size: 1.1rem; color: var(--text-muted); }
@@ -88,21 +90,21 @@
 
         /* SPLIT-SCREEN TIMER & STATS LAYOUT */
         #page-timer.active { display: flex; padding: 0; overflow: hidden; }
-        .stats-sidebar { width: 380px; background-color: var(--ui-dark-bg); border-right: 1px solid var(--ui-border); display: flex; flex-direction: column; padding: 15px 20px; flex-shrink: 0; z-index: 100; backdrop-filter: blur(10px); overflow-y: auto; }
+        .stats-sidebar { width: 380px; background-color: var(--ui-dark-bg); border-right: 1px solid var(--ui-border); display: flex; flex-direction: column; padding: 15px 20px; flex-shrink: 0; z-index: 100; backdrop-filter: blur(var(--ui-blur)); overflow-y: auto; }
 
         .session-selector-container { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
-        .session-dropdown { flex-grow: 1; background: var(--ui-card-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 8px 12px; border-radius: 6px; font-size: 1.05rem; cursor: pointer; outline: none; text-overflow: ellipsis; }
+        .session-dropdown { flex-grow: 1; background: var(--ui-card-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 8px 12px; border-radius: var(--ui-radius); font-size: 1.05rem; cursor: pointer; outline: none; text-overflow: ellipsis; }
         .session-dropdown:focus { border-color: var(--accent-color); }
-        .session-manage-btn { background: var(--ui-card-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .session-manage-btn { background: var(--ui-card-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 8px 12px; border-radius: var(--ui-radius); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .session-manage-btn:hover { background: var(--accent-color); color: #fff; border-color: var(--accent-color);}
 
         .mini-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .mini-stat-box { background: var(--ui-card-bg); padding: 8px 5px; border-radius: 6px; text-align: center; display: none; border: 1px solid var(--ui-border); }
+        .mini-stat-box { background: var(--ui-card-bg); padding: 8px 5px; border-radius: var(--ui-radius); text-align: center; display: none; border: 1px solid var(--ui-border); }
         .mini-stat-box.visible { display: block; }
         .stat-label { display: block; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .stat-value { font-size: 1.2rem; font-weight: bold; color: var(--text-color); }
 
-        .table-container { flex-grow: 1; overflow-y: auto; background: var(--ui-card-bg); border-radius: 6px; padding: 0; border: 1px solid var(--ui-border); }
+        .table-container { flex-grow: 1; overflow-y: auto; background: var(--ui-card-bg); border-radius: var(--ui-radius); padding: 0; border: 1px solid var(--ui-border); }
         .table-container::-webkit-scrollbar { width: 6px; }
         .table-container::-webkit-scrollbar-track { background: transparent; }
         .table-container::-webkit-scrollbar-thumb { background: var(--ui-border); border-radius: 3px; }
@@ -120,11 +122,11 @@
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: transparent; align-items: center; justify-content: space-between; z-index: 100; }
 
         .mode-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .mode-btn { backdrop-filter: blur(10px); background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .mode-btn { backdrop-filter: blur(var(--ui-blur)); background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
         .mode-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
         .mode-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
 
-        .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: var(--ui-panel-bg); border: 1px solid var(--ui-border); border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);}
+        .scramble-container { width: 100%; max-width: 800px; text-align: center; padding: 15px; background-color: var(--ui-panel-bg); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); cursor: pointer; backdrop-filter: blur(var(--ui-blur));}
         .scramble-text { font-size: 1.6rem; font-family: 'Inter', sans-serif; font-weight: bold; color: var(--accent-color); margin: 0; letter-spacing: 2px; }
         .scramble-btn { background: var(--ui-dark-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.85rem; font-weight: bold; }
         .scramble-btn:hover { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
@@ -136,7 +138,6 @@
         .timer-display { font-size: calc(clamp(5rem, 12vw, 15rem) * var(--timer-scale)); font-weight: bold; font-family: var(--timer-font); color: var(--timer-color); text-shadow: 0 0 20px var(--timer-glow); transition: transform var(--focus-fade) ease, color 0.1s, font-size 0.3s ease; }
 
         #penalty-controls { display: none; margin-top: 20px; gap: 10px; }
-        #usb-controls { margin-top: 20px; display: flex; justify-content: center; width: 100%; }
 
         .penalty-btn { background: var(--ui-card-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 10px 20px; font-size: 1.1rem; border-radius: 4px; cursor: pointer; }
         .penalty-btn:hover { background: var(--ui-panel-bg); }
@@ -160,7 +161,7 @@
         .hide-on-focus { transition: opacity var(--focus-fade) ease, filter var(--focus-fade) ease, width var(--focus-fade) ease, padding var(--focus-fade) ease, margin var(--focus-fade) ease, height var(--focus-fade) ease; }
         body.focus-mode .hide-on-focus { opacity: 0; pointer-events: none; filter: blur(10px); }
         body.focus-mode .stats-sidebar { width: 0; min-width: 0; padding-left: 0; padding-right: 0; border: none; }
-        body.focus-mode .scramble-container, body.focus-mode #usb-controls, body.focus-mode #penalty-controls, body.focus-mode .mode-selector { height: 0; padding: 0; margin: 0; overflow: hidden; }
+        body.focus-mode .scramble-container, body.focus-mode #penalty-controls, body.focus-mode .mode-selector { height: 0; padding: 0; margin: 0; overflow: hidden; }
         body.focus-mode .timer-wrapper { transform: scale(1.15); }
 
         .focus-backdrop { position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0; transition: opacity var(--focus-fade) ease; }
@@ -171,26 +172,26 @@
         @keyframes breathe-vignette { 0% { opacity: 0.6; } 100% { opacity: 1; } }
 
         /* Manager Modals */
-        .session-list-container { flex-grow: 1; overflow-y: auto; background: var(--ui-dark-bg); border-radius: 8px; margin-bottom: 20px; padding: 10px; text-align: left; }
-        .session-row { display: flex; align-items: center; gap: 10px; background: var(--ui-card-bg); padding: 10px; margin-bottom: 8px; border-radius: 6px; }
+        .session-list-container { flex-grow: 1; overflow-y: auto; background: var(--ui-dark-bg); border-radius: var(--ui-radius); margin-bottom: 20px; padding: 10px; text-align: left; }
+        .session-row { display: flex; align-items: center; gap: 10px; background: var(--ui-card-bg); padding: 10px; margin-bottom: 8px; border-radius: var(--ui-radius); }
         .session-row input { flex-grow: 1; background: transparent; border: 1px solid transparent; color: var(--text-color); font-size: 1.1rem; padding: 5px; border-radius: 4px; }
         .session-row input:focus { border-color: var(--accent-color); background: var(--ui-panel-bg); outline: none; }
         .session-row-btn { background: var(--ui-dark-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
         .session-row-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
         .session-row-btn.del:hover { background: #d32f2f; color: #fff; }
 
-        .scramble-checkboxes { display: flex; gap: 15px; background: var(--ui-card-bg); border: 1px solid var(--ui-border); padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; justify-content: space-around;}
+        .scramble-checkboxes { display: flex; gap: 15px; background: var(--ui-card-bg); border: 1px solid var(--ui-border); padding: 10px; border-radius: var(--ui-radius); width: 100%; box-sizing: border-box; justify-content: space-around;}
         .scramble-checkboxes label { cursor: pointer; display: flex; align-items: center; font-size: 1.1rem; color: var(--text-color);}
         .scramble-checkboxes input { transform: scale(1.3); margin-right: 8px; accent-color: var(--accent-color);}
         .setting-checkbox { transform: scale(1.5); margin-right: 15px; accent-color: var(--accent-color); }
 
-        .offline-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--ui-card-bg); border-radius: 6px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent;}
+        .offline-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--ui-card-bg); border-radius: var(--ui-radius); margin-bottom: 8px; cursor: pointer; border: 1px solid transparent;}
         .offline-item:hover { border-color: #9C27B0; }
         .offline-item input { transform: scale(1.5); margin-right: 15px; cursor: pointer; accent-color: #9C27B0;}
         .offline-time { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; font-weight: bold; color: var(--accent-color); flex-grow: 1;}
 
         /* Data Page Overviews */
-        .stat-box-large { background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: 8px; flex: 1; min-width: 120px; text-align: center; display: none; }
+        .stat-box-large { background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: var(--ui-radius); flex: 1; min-width: 120px; text-align: center; display: none; }
         .stat-box-large.visible { display: block; }
         .stat-title { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; margin-top: 0;}
 
@@ -270,7 +271,7 @@
         <div id="sidePanel">
             <div class="panel-header"><h3 style="margin: 0; text-align: center; width: 100%; color: var(--text-color); font-size: 1.5rem; letter-spacing: 1px;">ArchSense</h3></div>
             <div class="nav-menu">
-                <button class="nav-btn" class="active" onclick="openPage('page-timer', 'Main Timer', this)">⏱️ Timer</button>
+                <button class="nav-btn active" onclick="openPage('page-timer', 'Main Timer', this)">⏱️ Timer</button>
                 <button class="nav-btn" onclick="openPage('page-analytics', 'Data Analytics', this)">📈 Analytics</button>
                 <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">⚙️ Settings</button>
                 <button class="nav-btn" onclick="openPage('page-data', 'Session Data & Export', this)">📁 Data & Export</button>
@@ -339,10 +340,6 @@
                         <div id="mainTimerText" class="timer-display">0.000</div>
                         <div id="bldSubText" style="display:none; font-size: 1.2rem; color: var(--text-muted); margin-top: 10px; font-family: var(--timer-font);"></div>
 
-                        <div id="usb-controls" class="hide-on-focus">
-                            <button id="btnConnectSerial" class="action-btn action-btn-green" onclick="connectWebSerial()" style="display: none;">🔌 Connect to Ghost USB</button>
-                        </div>
-
                         <div id="penalty-controls" class="hide-on-focus">
                             <button class="penalty-btn" onclick="applyPenalty('OK')">OK</button>
                             <button class="penalty-btn" id="btnPenaltyPlus" onclick="applyPenalty('+2')">+2</button>
@@ -355,20 +352,28 @@
 
             <div id="page-analytics" class="page-view">
                 <h2>Data Analytics & Projections</h2>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Total Solves (All)</p><p id="anaTotalSolves" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Total Time Cubing</p><p id="anaTotalTime" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Overall Median</p><p id="anaMedian" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Standard Deviation</p><p id="anaStdDev" class="stat-value">--</p></div>
+                </div>
+
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
-                    <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--ui-border);">
+                    <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border);">
                         <h3 style="margin-top:0; color: var(--accent-color);">Session Trendline</h3>
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px;">Polynomial Regression over valid solves</p>
                         <div class="chart-container"><canvas id="trendChart"></canvas></div>
                     </div>
-                    <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--ui-border);">
+                    <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border);">
                         <h3 style="margin-top:0; color: var(--accent-color);">Time Distribution</h3>
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px;">Frequency of solve times (1-second buckets)</p>
                         <div class="chart-container"><canvas id="distChart"></canvas></div>
                     </div>
                 </div>
 
-                <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--ui-border); margin-top: 20px;">
+                <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border); margin-top: 20px;">
                     <h3 style="margin-top:0; color: var(--accent-color);">WCA Simulation & Projected Averages</h3>
                     <p style="color: var(--text-muted); margin-bottom: 20px;">See exactly what time you need on your very next solve to beat your Personal Bests.</p>
                     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -388,7 +393,7 @@
                 <h2>Application Settings</h2>
 
                 <h3 style="color: var(--accent-color); margin-top: 0; margin-bottom: 15px;">Visuals & Theme Engine</h3>
-                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 25px 30px; border-radius: 8px; max-width: 600px; margin-bottom: 25px;">
+                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 25px 30px; border-radius: var(--ui-radius); max-width: 600px; margin-bottom: 25px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Preset Theme:</span>
                         <select id="selTheme" onchange="applyPresetTheme()" class="theme-select">
@@ -445,6 +450,14 @@
                         <span>Interface Panel Opacity: <span id="lblUiOpacity" style="color: var(--accent-color);">1.0</span></span>
                         <input type="range" id="valUiOpacity" class="theme-range" min="0.0" max="1.0" step="0.05" value="1.0" oninput="document.getElementById('lblUiOpacity').innerText = this.value; setCustomTheme(); saveSettings();">
                     </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>UI Border Radius: <span id="lblRadius" style="color: var(--accent-color);">8px</span></span>
+                        <input type="range" id="valRadius" class="theme-range" min="0" max="24" step="1" value="8" oninput="document.getElementById('lblRadius').innerText = this.value + 'px'; setCustomTheme(); saveSettings();">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Panel Blur Intensity: <span id="lblBlur" style="color: var(--accent-color);">10px</span></span>
+                        <input type="range" id="valBlur" class="theme-range" min="0" max="30" step="1" value="10" oninput="document.getElementById('lblBlur').innerText = this.value + 'px'; setCustomTheme(); saveSettings();">
+                    </div>
 
                     <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
                     <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Cinematic Focus Mode Animations</h4>
@@ -462,12 +475,16 @@
                     </div>
                 </div>
 
-                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 25px 30px; border-radius: 8px; max-width: 600px;">
+                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 25px 30px; border-radius: var(--ui-radius); max-width: 600px;">
                     <h3 style="color: var(--accent-color); margin-top: 0; margin-bottom: 15px;">Software Engine</h3>
                     <div id="softwareSettingsAnchor">
                         <div id="dynamicBoardSettings">
                             <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
                                 <input type="checkbox" id="chkInspection" class="setting-checkbox" onchange="saveSettings()"> Enable WCA Inspection Phase
+                            </label>
+
+                            <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
+                                <input type="checkbox" id="chkVoice" class="setting-checkbox" onchange="saveSettings()"> Enable Voice Alerts (8s / 12s callouts)
                             </label>
 
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
@@ -552,7 +569,7 @@
 
             <div id="page-data" class="page-view">
                 <h2>Data & Export</h2>
-                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: 8px; max-width: 800px;">
+                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: var(--ui-radius); max-width: 800px;">
                     <p style="color: var(--text-muted); margin-bottom: 20px;">Manage backups or import solves stored on your hardware board.</p>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px;">
@@ -590,9 +607,14 @@
 
             <div id="page-devices" class="page-view">
                 <h2>Device Manager</h2>
-                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: 8px; max-width: 600px;">
+                <div style="background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: var(--ui-radius); max-width: 600px;">
                     <p style="color: var(--text-muted);">Currently configured for:</p>
                     <h3 id="activeDeviceDisplay" style="color: var(--accent-color); font-size: 1.8rem; margin: 10px 0;">None</h3>
+
+                    <div id="usb-controls" style="margin-top: 20px; margin-bottom: 20px; display: flex; flex-direction: column; align-items:flex-start;">
+                        <button id="btnConnectSerial" class="action-btn action-btn-green" onclick="connectWebSerial()" style="display: none;">🔌 Connect to Ghost USB</button>
+                    </div>
+
                     <button class="reset-btn" onclick="resetSetup()" style="margin-top: 15px;">Reset Hardware Choice</button>
                 </div>
             </div>
@@ -605,12 +627,13 @@
         let currentDevice = ''; let serialPort = null; let serialReader = null;
 
         let appSettings = {
-            inspectionEnabled: true, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
+            inspectionEnabled: true, voiceAlerts: false, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
             scrambleMoves: ['U', 'D', 'R', 'L', 'F', 'B'], trimPct: 5, plusPenalty: 2000, timerDecimals: 3,
             timerUpdateRate: 10, batterySaver: true, sleepTimeout: 30, sensorThreshold: 40, sensorDebounce: 15,
             themeName: 'oled', bgColor: '#000000',
             textColor: '#ffffff', accentColor: '#4CAF50', timerColor: '#ffffff', timerGlow: 'transparent',
             bgImage: '', timerFont: "'Roboto Mono', monospace", timerScale: 1.0, uiOpacity: 1.0,
+            uiBlur: 10, uiRadius: 8,
             focusStyle: 'fade', focusFadeTime: 0.5
         };
 
@@ -629,6 +652,7 @@
         let timerState = 'idle'; let startTime = 0; let finalTimeMs = 0; let timerInterval;
         let inspectStartTime = 0; let inspectionInterval; let activeInspectionPenalty = 'OK';
         let spaceHoldStart = 0; let holdInterval; let dummyOfflineSolves = [];
+        let alerted8 = false; let alerted12 = false;
 
         // PB Global Trackers for Projections and Streaks
         let globalPbSingle = Infinity; let globalPbAo5 = Infinity; let globalPbAo12 = Infinity; let globalPbAo100 = Infinity;
@@ -648,6 +672,14 @@
             setTimeout(() => { toast.remove(); }, 3500);
         }
 
+        function speakText(text) {
+            if ('speechSynthesis' in window && appSettings.voiceAlerts) {
+                let msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 1.2;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
         function isLightColor(colorStr) {
             if (!colorStr) return false; let hex = colorStr.replace('#', '');
             if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
@@ -662,6 +694,8 @@
             r.style.setProperty('--timer-glow', appSettings.timerGlow || 'transparent'); r.style.setProperty('--bg-image', appSettings.bgImage ? `url(${appSettings.bgImage})` : 'none');
             r.style.setProperty('--timer-font', appSettings.timerFont); r.style.setProperty('--timer-scale', appSettings.timerScale);
             r.style.setProperty('--focus-fade', appSettings.focusFadeTime + 's'); r.style.setProperty('--ui-opacity', appSettings.uiOpacity);
+            r.style.setProperty('--ui-blur', (appSettings.uiBlur !== undefined ? appSettings.uiBlur : 10) + 'px');
+            r.style.setProperty('--ui-radius', (appSettings.uiRadius !== undefined ? appSettings.uiRadius : 8) + 'px');
 
             let isLight = isLightColor(appSettings.bgColor); if(appSettings.bgImage) isLight = false; if(appSettings.themeName === 'bliss') isLight = true;
             if (isLight) {
@@ -690,6 +724,7 @@
             document.getElementById('valTrimPct').value = appSettings.trimPct; document.getElementById('valPlusPenalty').value = appSettings.plusPenalty;
             document.getElementById('valScrambleLen').value = appSettings.scrambleLen; document.getElementById('valTimerDecimals').value = appSettings.timerDecimals;
             document.getElementById('valTimerUpdateRate').value = appSettings.timerUpdateRate; document.getElementById('chkBatterySaver').checked = appSettings.batterySaver;
+            document.getElementById('chkVoice').checked = appSettings.voiceAlerts;
             document.getElementById('valSleepTimeout').value = appSettings.sleepTimeout;
             document.getElementById('valThreshold').value = appSettings.sensorThreshold;
             document.getElementById('lblThreshold').innerText = appSettings.sensorThreshold;
@@ -702,8 +737,15 @@
             document.getElementById('valTimerScale').value = appSettings.timerScale || 1.0; document.getElementById('lblTimerScale').innerText = (appSettings.timerScale || 1.0) + 'x';
             document.getElementById('valBgColor').value = appSettings.bgColor || '#121212'; document.getElementById('valTextColor').value = appSettings.textColor || '#ffffff';
             document.getElementById('valAccentColor').value = appSettings.accentColor || '#4CAF50'; document.getElementById('valTimerColor').value = appSettings.timerColor || '#ffffff';
-            document.getElementById('valBgImage').value = appSettings.bgImage || ''; document.getElementById('valUiOpacity').value = appSettings.uiOpacity !== undefined ? appSettings.uiOpacity : 1.0;
+            document.getElementById('valBgImage').value = appSettings.bgImage || '';
+
+            document.getElementById('valUiOpacity').value = appSettings.uiOpacity !== undefined ? appSettings.uiOpacity : 1.0;
             document.getElementById('lblUiOpacity').innerText = appSettings.uiOpacity !== undefined ? appSettings.uiOpacity : 1.0;
+            document.getElementById('valRadius').value = appSettings.uiRadius !== undefined ? appSettings.uiRadius : 8;
+            document.getElementById('lblRadius').innerText = (appSettings.uiRadius !== undefined ? appSettings.uiRadius : 8) + 'px';
+            document.getElementById('valBlur').value = appSettings.uiBlur !== undefined ? appSettings.uiBlur : 10;
+            document.getElementById('lblBlur').innerText = (appSettings.uiBlur !== undefined ? appSettings.uiBlur : 10) + 'px';
+
             document.getElementById('selFocusStyle').value = appSettings.focusStyle || 'fade'; document.getElementById('valFocusFade').value = appSettings.focusFadeTime !== undefined ? appSettings.focusFadeTime : 0.5;
             document.getElementById('lblFocusFade').innerText = (appSettings.focusFadeTime !== undefined ? appSettings.focusFadeTime : 0.5) + 's';
 
@@ -721,12 +763,16 @@
             appSettings.scrambleLen = parseInt(document.getElementById('valScrambleLen').value) || 20; appSettings.timerDecimals = parseInt(document.getElementById('valTimerDecimals').value) || 3;
             appSettings.timerUpdateRate = parseInt(document.getElementById('valTimerUpdateRate').value) || 10; appSettings.scrambleMoves = selectedMoves;
             appSettings.batterySaver = document.getElementById('chkBatterySaver').checked; appSettings.sleepTimeout = parseInt(document.getElementById('valSleepTimeout').value) || 30;
+            appSettings.voiceAlerts = document.getElementById('chkVoice').checked;
             appSettings.sensorThreshold = parseInt(document.getElementById('valThreshold').value) || 40; appSettings.sensorDebounce = parseInt(document.getElementById('valDebounce').value) || 15;
 
             appSettings.timerFont = document.getElementById('selFont').value; appSettings.timerScale = parseFloat(document.getElementById('valTimerScale').value);
             appSettings.bgColor = document.getElementById('valBgColor').value; appSettings.textColor = document.getElementById('valTextColor').value;
             appSettings.accentColor = document.getElementById('valAccentColor').value; appSettings.timerColor = document.getElementById('valTimerColor').value;
-            appSettings.bgImage = document.getElementById('valBgImage').value; appSettings.uiOpacity = parseFloat(document.getElementById('valUiOpacity').value);
+            appSettings.bgImage = document.getElementById('valBgImage').value;
+            appSettings.uiOpacity = parseFloat(document.getElementById('valUiOpacity').value);
+            appSettings.uiRadius = parseInt(document.getElementById('valRadius').value) || 0;
+            appSettings.uiBlur = parseInt(document.getElementById('valBlur').value) || 0;
             appSettings.focusStyle = document.getElementById('selFocusStyle').value; appSettings.focusFadeTime = parseFloat(document.getElementById('valFocusFade').value);
 
             updateThemeCSS(); localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
@@ -746,7 +792,6 @@
             console.log("Syncing Config to Board:", configCmd);
             if(currentDevice !== 'keyboard') showToast("⚙️ Board Sync: " + profile.toUpperCase() + " Profile");
 
-            // Mock TopBar status updates on sync
             document.getElementById('statusIcon').innerText = '🟢';
             document.getElementById('battIcon').innerText = '🔋 87%';
 
@@ -804,7 +849,6 @@
                 if (index === sessions.length - 1) { dnBtn.disabled = true; dnBtn.style.opacity = '0.3'; } else dnBtn.onclick = () => moveSession(index, 1); row.appendChild(dnBtn);
                 let input = document.createElement('input'); input.type = 'text'; input.value = s.name; input.oninput = (e) => renameSession(s.id, e.target.value); row.appendChild(input);
 
-                // New Hardware Profile Dropdown
                 let profileSel = document.createElement('select'); profileSel.className = 'theme-select'; profileSel.style.width = '120px'; profileSel.style.fontSize = '0.9rem';
                 profileSel.innerHTML = `<option value="performance" ${s.hwProfile==='performance'?'selected':''}>Performance</option><option value="stealth" ${s.hwProfile==='stealth'?'selected':''}>Stealth (BLD)</option>`;
                 profileSel.onchange = (e) => { s.hwProfile = e.target.value; persistDatabase(); if(activeSessionId === s.id) syncBoardConfig(); };
@@ -850,10 +894,11 @@
 
         function openPage(pageId, pageTitleText, btnElement) {
             const isAlreadyActive = btnElement.classList.contains('active');
+            if (isAlreadyActive) return; // Prevent toggling out of view on click
+
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            if (isAlreadyActive && pageId !== 'page-analytics') { document.getElementById('page-timer').classList.add('active'); document.getElementById('pageTitle').innerText = 'Main Timer'; }
-            else { document.getElementById(pageId).classList.add('active'); btnElement.classList.add('active'); document.getElementById('pageTitle').innerText = pageTitleText; }
+            document.getElementById(pageId).classList.add('active'); btnElement.classList.add('active'); document.getElementById('pageTitle').innerText = pageTitleText;
             if (pageId === 'page-analytics') updateAnalyticsUI();
         }
 
@@ -905,7 +950,10 @@
         }
 
         function setFocusMode(active) {
-            if (active) { document.body.classList.add('focus-mode'); document.body.classList.add('focus-style-' + appSettings.focusStyle); }
+            if (active) {
+                if(document.getElementById('sidePanel').classList.contains('open')) togglePanel();
+                document.body.classList.add('focus-mode'); document.body.classList.add('focus-style-' + appSettings.focusStyle);
+            }
             else { document.body.classList.remove('focus-mode', 'focus-style-fade', 'focus-style-vignette', 'focus-style-black'); }
         }
 
@@ -956,7 +1004,10 @@
             }
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
-                if (appSettings.inspectionEnabled) { timerState = 'inspecting_starting'; setFocusMode(true); document.getElementById('mainTimerText').style.color = '#ff9800'; document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString(); }
+                if (appSettings.inspectionEnabled) {
+                    timerState = 'inspecting_starting'; setFocusMode(true); document.getElementById('mainTimerText').style.color = '#ff9800';
+                    document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString();
+                }
                 else {
                     timerState = 'starting_hold'; activeInspectionPenalty = 'OK'; spaceHoldStart = Date.now(); document.getElementById('mainTimerText').style.color = '#d32f2f';
                     holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)'; document.getElementById('mainTimerText').innerText = formatTime(0); setFocusMode(true); clearInterval(holdInterval); } }, 50);
@@ -979,8 +1030,18 @@
 
         function startInspection() {
             inspectStartTime = Date.now(); activeInspectionPenalty = 'OK'; document.getElementById('mainTimerText').style.color = '#ff9800';
+            alerted8 = false; alerted12 = false;
+
             inspectionInterval = setInterval(() => {
-                let elapsed = Date.now() - inspectStartTime; let remaining = appSettings.inspectionTime - Math.floor(elapsed / 1000);
+                let elapsedMs = Date.now() - inspectStartTime;
+                let elapsedSec = Math.floor(elapsedMs / 1000);
+                let remaining = appSettings.inspectionTime - elapsedSec;
+
+                if (appSettings.voiceAlerts) {
+                    if (elapsedSec === 8 && !alerted8) { speakText("Eight seconds"); alerted8 = true; }
+                    if (elapsedSec === 12 && !alerted12) { speakText("Twelve seconds"); alerted12 = true; }
+                }
+
                 if (remaining <= 0 && remaining > -appSettings.inspGrace) activeInspectionPenalty = '+2'; else if (remaining <= -appSettings.inspGrace) activeInspectionPenalty = 'DNF';
                 if (timerState !== 'ready') {
                     let displayStr = "DNF"; if (remaining > 0) displayStr = remaining; else if (remaining <= 0 && remaining > -appSettings.inspGrace) displayStr = "+2";
@@ -1040,10 +1101,28 @@
         }
 
         function deleteLastSolve() {
-            let fSolves = getFilteredSolves(); if(fSolves.length === 0) return; let lastSolve = fSolves[fSolves.length - 1];
+            let fSolves = getFilteredSolves(); if(fSolves.length === 0) return;
+            let lastSolve = fSolves[fSolves.length - 1];
             let session = getActiveSession(); let realIndex = session.solves.lastIndexOf(lastSolve);
             if (realIndex > -1) session.solves.splice(realIndex, 1);
-            persistDatabase(); document.getElementById('penalty-controls').style.display = 'none'; document.getElementById('mainTimerText').innerText = formatTime(0); document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; document.getElementById('bldSubText').style.display = 'none'; timerState = 'idle'; setFocusMode(false); updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
+            persistDatabase();
+
+            let newFSolves = getFilteredSolves();
+            if (newFSolves.length > 0) {
+                let newLast = newFSolves[newFSolves.length - 1];
+                finalTimeMs = newLast.timeMs;
+                activeInspectionPenalty = newLast.penalty;
+                applyVisualPenalty(newLast.penalty, newLast.timeMs);
+                document.getElementById('penalty-controls').style.display = 'flex';
+            } else {
+                document.getElementById('penalty-controls').style.display = 'none';
+                document.getElementById('mainTimerText').innerText = formatTime(0);
+                document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
+                finalTimeMs = 0;
+            }
+
+            document.getElementById('bldSubText').style.display = 'none'; timerState = 'idle'; setFocusMode(false);
+            updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
         }
 
         function calcAverageOfSlice(slice) {
@@ -1062,6 +1141,7 @@
             if(fSolves.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-muted); text-align:center; padding-top:20px;">No solves yet</td></tr>';
                 setUIStat('Solves', '0/0', true); setUIStat('Mean', '--', true); setUIStat('Best', '--', false); setUIStat('Ao5', '--', false); setUIStat('BestAo5', '--', false); setUIStat('Ao12', '--', false); setUIStat('BestAo12', '--', false); setUIStat('Ao100', '--', false); setUIStat('BestAo100', '--', false);
+                updateAnalyticsUI();
                 return;
             }
 
@@ -1117,9 +1197,40 @@
         }
 
         function updateAnalyticsUI() {
-            if(typeof Chart === 'undefined') return;
+            // Update the top 4 stat boxes
+            let allSolvesCount = 0;
+            let totalTimeCubingMs = 0;
+            sessions.forEach(s => {
+                allSolvesCount += s.solves.length;
+                s.solves.forEach(solve => totalTimeCubingMs += solve.timeMs);
+            });
+            document.getElementById('anaTotalSolves').innerText = allSolvesCount;
+
+            let hours = Math.floor(totalTimeCubingMs / 3600000);
+            let mins = Math.floor((totalTimeCubingMs % 3600000) / 60000);
+            let secs = Math.floor((totalTimeCubingMs % 60000) / 1000);
+            document.getElementById('anaTotalTime').innerText = `${hours}h ${mins}m ${secs}s`;
+
             let fSolves = getFilteredSolves();
             let validTimes = fSolves.filter(s => s.penalty !== 'DNF').map(s => (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) / 1000);
+
+            if (validTimes.length > 0) {
+                let sorted = [...validTimes].sort((a, b) => a - b);
+                let mid = Math.floor(sorted.length / 2);
+                let median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+                document.getElementById('anaMedian').innerText = median.toFixed(appSettings.timerDecimals) + 's';
+
+                let mean = validTimes.reduce((a,b)=>a+b, 0) / validTimes.length;
+                let variance = validTimes.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / validTimes.length;
+                let stdDev = Math.sqrt(variance);
+                document.getElementById('anaStdDev').innerText = stdDev.toFixed(appSettings.timerDecimals) + 's';
+            } else {
+                document.getElementById('anaMedian').innerText = '--';
+                document.getElementById('anaStdDev').innerText = '--';
+            }
+
+
+            if(typeof Chart === 'undefined') return;
 
             // Chart 1: Polynomial Trendline
             let labels = validTimes.map((_, i) => i + 1);
