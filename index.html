@@ -190,13 +190,17 @@
         .offline-item input { transform: scale(1.5); margin-right: 15px; cursor: pointer; accent-color: #9C27B0;}
         .offline-time { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; font-weight: bold; color: var(--accent-color); flex-grow: 1;}
 
-        /* Data Page Overviews */
+        /* Data Page Overviews & Analytics */
         .stat-box-large { background: var(--ui-panel-bg); border: 1px solid var(--ui-border); padding: 20px; border-radius: var(--ui-radius); flex: 1; min-width: 120px; text-align: center; display: none; }
         .stat-box-large.visible { display: block; }
         .stat-title { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; margin-top: 0;}
-
-        /* Analytics Specifics */
         .chart-container { position: relative; height: 300px; width: 100%; margin-top: 15px; }
+
+        /* Quick Settings & Stars */
+        .quick-panel { position: absolute; top: 60px; left: 140px; background: var(--ui-panel-bg); border: 1px solid var(--ui-border); border-radius: var(--ui-radius); padding: 15px; z-index: 1000; backdrop-filter: blur(var(--ui-blur)); box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 260px; }
+        .star-btn { cursor: pointer; color: var(--text-muted); font-size: 1.4rem; margin-left: 10px; user-select: none; transition: 0.2s;}
+        .star-btn:hover { color: #fff; }
+        .star-btn.active { color: #ffeb3b; text-shadow: 0 0 5px rgba(255,235,59,0.5); }
 
         /* Toast Notifications */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
@@ -210,6 +214,7 @@
             .stats-sidebar { width: auto; border-right: none; border-bottom: 1px solid var(--ui-border); max-height: 50vh; }
             .timer-area { padding: 10px; justify-content: flex-start; }
             .timer-display { font-size: 20vw; }
+            .quick-panel { left: 20px; }
         }
     </style>
 </head>
@@ -217,6 +222,11 @@
 
     <div id="focusBackdrop" class="focus-backdrop"></div>
     <div id="toast-container"></div>
+
+    <div id="quickPanel" class="quick-panel hide-on-focus" style="display:none;">
+        <h4 style="margin:0 0 15px 0; color:var(--accent-color);">Quick Settings</h4>
+        <div id="quickPanelContent"></div>
+    </div>
 
     <div id="setupModal" class="modal-overlay">
         <div class="modal-content">
@@ -283,6 +293,7 @@
             <div class="top-bar hide-on-focus">
                 <div style="display: flex; gap:15px; align-items:center;">
                     <button id="mainToggleBtn" class="menu-btn" onclick="togglePanel()">☰ Menu</button>
+                    <button class="menu-btn" onclick="toggleQuickPanel()" style="width: auto;" title="Quick Settings">⚡ Quick</button>
                     <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color);">Main Timer</span>
                 </div>
                 <div class="hw-status">
@@ -354,10 +365,10 @@
                 <h2>Data Analytics & Projections</h2>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Total Solves (All)</p><p id="anaTotalSolves" class="stat-value">--</p></div>
-                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Total Time Cubing</p><p id="anaTotalTime" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Total Solves</p><p id="anaTotalSolves" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Time Cubing</p><p id="anaTotalTime" class="stat-value">--</p></div>
                     <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Overall Median</p><p id="anaMedian" class="stat-value">--</p></div>
-                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Standard Deviation</p><p id="anaStdDev" class="stat-value">--</p></div>
+                    <div class="stat-box-large visible" style="padding: 15px;"><p class="stat-title">Std Deviation</p><p id="anaStdDev" class="stat-value">--</p></div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
@@ -419,51 +430,71 @@
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Timer Size Scale: <span id="lblTimerScale" style="color: var(--accent-color); font-weight: bold;">1.0x</span></span>
-                        <input type="range" id="valTimerScale" class="theme-range" min="0.5" max="2.5" step="0.1" value="1.0" oninput="document.getElementById('lblTimerScale').innerText = this.value + 'x'; saveSettings();">
+                        <input type="range" id="valTimerScale" class="theme-range" min="0.5" max="2.5" step="0.1" value="1.0" oninput="document.getElementById('lblTimerScale').innerText = this.value + 'x';" onchange="debouncedSave();">
                     </div>
 
                     <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Background Color:</span>
-                        <input type="color" id="valBgColor" class="color-picker" onchange="setCustomTheme(); saveSettings();">
+                        <input type="color" id="valBgColor" class="color-picker" onchange="setCustomTheme(); debouncedSave();">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Text Color:</span>
-                        <input type="color" id="valTextColor" class="color-picker" onchange="setCustomTheme(); saveSettings();">
+                        <input type="color" id="valTextColor" class="color-picker" onchange="setCustomTheme(); debouncedSave();">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Accent Color (Highlights):</span>
-                        <input type="color" id="valAccentColor" class="color-picker" onchange="setCustomTheme(); saveSettings();">
+                        <input type="color" id="valAccentColor" class="color-picker" onchange="setCustomTheme(); debouncedSave();">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Timer Display Color:</span>
-                        <input type="color" id="valTimerColor" class="color-picker" onchange="setCustomTheme(); saveSettings();">
+                        <input type="color" id="valTimerColor" class="color-picker" onchange="setCustomTheme(); debouncedSave();">
                     </div>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem; margin-top: 25px;">
                         <span>Background Image/GIF (URL):</span>
-                        <input type="text" id="valBgImage" placeholder="https://..." style="width: 200px; background: var(--ui-dark-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 6px; border-radius: 4px;" oninput="setCustomTheme(); saveSettings();">
+                        <input type="text" id="valBgImage" placeholder="https://..." style="width: 200px; background: var(--ui-dark-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 6px; border-radius: 4px;" oninput="setCustomTheme(); debouncedSave();">
                     </div>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Interface Panel Opacity: <span id="lblUiOpacity" style="color: var(--accent-color);">1.0</span></span>
-                        <input type="range" id="valUiOpacity" class="theme-range" min="0.0" max="1.0" step="0.05" value="1.0" oninput="document.getElementById('lblUiOpacity').innerText = this.value; setCustomTheme(); saveSettings();">
+                        <input type="range" id="valUiOpacity" class="theme-range" min="0.0" max="1.0" step="0.05" value="1.0" oninput="document.getElementById('lblUiOpacity').innerText = this.value; setCustomTheme();" onchange="debouncedSave();">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>UI Border Radius: <span id="lblRadius" style="color: var(--accent-color);">8px</span></span>
-                        <input type="range" id="valRadius" class="theme-range" min="0" max="24" step="1" value="8" oninput="document.getElementById('lblRadius').innerText = this.value + 'px'; setCustomTheme(); saveSettings();">
+                        <input type="range" id="valRadius" class="theme-range" min="0" max="24" step="1" value="8" oninput="document.getElementById('lblRadius').innerText = this.value + 'px'; setCustomTheme();" onchange="debouncedSave();">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Panel Blur Intensity: <span id="lblBlur" style="color: var(--accent-color);">10px</span></span>
-                        <input type="range" id="valBlur" class="theme-range" min="0" max="30" step="1" value="10" oninput="document.getElementById('lblBlur').innerText = this.value + 'px'; setCustomTheme(); saveSettings();">
+                        <input type="range" id="valBlur" class="theme-range" min="0" max="30" step="1" value="10" oninput="document.getElementById('lblBlur').innerText = this.value + 'px'; setCustomTheme();" onchange="debouncedSave();">
                     </div>
 
                     <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
-                    <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Cinematic Focus Mode Animations</h4>
+
+                    <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Cube Scramble Orientation</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Top Face Color:</span>
+                        <select id="selCubeTop" onchange="debouncedSave();" class="theme-select">
+                            <option value="white">White</option>
+                            <option value="yellow">Yellow</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                        <span>Front Face Color:</span>
+                        <select id="selCubeFront" onchange="debouncedSave();" class="theme-select">
+                            <option value="green">Green</option>
+                            <option value="red">Red</option>
+                            <option value="blue">Blue</option>
+                            <option value="orange">Orange</option>
+                        </select>
+                    </div>
+
+                    <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
+                    <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Cinematic Focus Mode</h4>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Transition Style:</span>
-                        <select id="selFocusStyle" onchange="saveSettings()" class="theme-select">
+                        <select id="selFocusStyle" onchange="debouncedSave()" class="theme-select">
                             <option value="fade">Fade to Background Style</option>
                             <option value="vignette">Breathing Vignette (Calm)</option>
                             <option value="black">Fade to Pure Black</option>
@@ -471,7 +502,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Fade Duration: <span id="lblFocusFade" style="color: var(--accent-color);">0.5s</span></span>
-                        <input type="range" id="valFocusFade" class="theme-range" min="0" max="3.0" step="0.1" value="0.5" oninput="document.getElementById('lblFocusFade').innerText = this.value + 's'; saveSettings();">
+                        <input type="range" id="valFocusFade" class="theme-range" min="0" max="3.0" step="0.1" value="0.5" oninput="document.getElementById('lblFocusFade').innerText = this.value + 's';" onchange="debouncedSave();">
                     </div>
                 </div>
 
@@ -481,23 +512,25 @@
                         <div id="dynamicBoardSettings">
                             <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
                                 <input type="checkbox" id="chkInspection" class="setting-checkbox" onchange="saveSettings()"> Enable WCA Inspection Phase
+                                <span class="star-btn" data-id="chkInspection" onclick="toggleQuickSetting('chkInspection', 'WCA Inspection', 'checkbox', this)">☆</span>
                             </label>
 
                             <label style="display:flex; align-items:center; margin-bottom:20px; font-size: 1.1rem; cursor:pointer;">
-                                <input type="checkbox" id="chkVoice" class="setting-checkbox" onchange="saveSettings()"> Enable Voice Alerts (8s / 12s callouts)
+                                <input type="checkbox" id="chkVoice" class="setting-checkbox" onchange="saveSettings()"> Enable Voice Alerts (8s / 12s)
+                                <span class="star-btn" data-id="chkVoice" onclick="toggleQuickSetting('chkVoice', 'Voice Alerts', 'checkbox', this)">☆</span>
                             </label>
 
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
-                                <span>Inspection Duration (seconds):</span>
-                                <input type="number" id="valInspectionTime" min="1" max="60" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                                <span>Inspection Duration (seconds): <span class="star-btn" data-id="valInspectionTime" onclick="toggleQuickSetting('valInspectionTime', 'Insp. Time', 'number', this)">☆</span></span>
+                                <input type="number" id="valInspectionTime" min="1" max="60" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                                 <span>Inspection DNF Grace Period (sec):</span>
-                                <input type="number" id="valInspGrace" min="0" max="15" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                                <input type="number" id="valInspGrace" min="0" max="15" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                                 <span>Timer Hold Delay (seconds):</span>
-                                <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                                <input type="number" id="valHoldDelay" step="0.1" min="0" max="3" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                             </div>
                             <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
                         </div>
@@ -505,37 +538,37 @@
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Average Trim Percentage (%):</span>
-                        <input type="number" id="valTrimPct" min="0" max="50" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                        <input type="number" id="valTrimPct" min="0" max="50" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Penalty Time Addition (ms):</span>
-                        <input type="number" id="valPlusPenalty" step="100" min="0" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                        <input type="number" id="valPlusPenalty" step="100" min="0" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                         <span>Timer Decimals (e.g. 0.00 vs 0.000):</span>
-                        <input type="number" id="valTimerDecimals" min="1" max="4" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                        <input type="number" id="valTimerDecimals" min="1" max="4" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size: 1.1rem;">
                         <span>Timer Screen Refresh Rate (ms):</span>
-                        <input type="number" id="valTimerUpdateRate" min="1" max="100" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                        <input type="number" id="valTimerUpdateRate" min="1" max="100" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                     </div>
 
                     <hr style="border-top: 1px solid var(--ui-border); border-bottom: none; margin: 20px 0;">
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size: 1.1rem;">
                         <span>Scramble Length (moves):</span>
-                        <input type="number" id="valScrambleLen" min="1" max="50" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                        <input type="number" id="valScrambleLen" min="1" max="50" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                     </div>
 
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; font-size: 1.1rem; flex-direction: column;">
                         <span style="margin-bottom: 12px;">Allowed Scramble Moves (Min 2):</span>
                         <div id="scrambleMovesCheckboxes" class="scramble-checkboxes">
-                            <label><input type="checkbox" value="U" onchange="saveSettings()"> U</label>
-                            <label><input type="checkbox" value="D" onchange="saveSettings()"> D</label>
-                            <label><input type="checkbox" value="R" onchange="saveSettings()"> R</label>
-                            <label><input type="checkbox" value="L" onchange="saveSettings()"> L</label>
-                            <label><input type="checkbox" value="F" onchange="saveSettings()"> F</label>
-                            <label><input type="checkbox" value="B" onchange="saveSettings()"> B</label>
+                            <label><input type="checkbox" value="U" onchange="debouncedSave()"> U</label>
+                            <label><input type="checkbox" value="D" onchange="debouncedSave()"> D</label>
+                            <label><input type="checkbox" value="R" onchange="debouncedSave()"> R</label>
+                            <label><input type="checkbox" value="L" onchange="debouncedSave()"> L</label>
+                            <label><input type="checkbox" value="F" onchange="debouncedSave()"> F</label>
+                            <label><input type="checkbox" value="B" onchange="debouncedSave()"> B</label>
                         </div>
                     </div>
 
@@ -546,25 +579,28 @@
                         <div id="hardwareSettingsAnchor"></div>
 
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
-                            <span>Sensor Threshold (Sensitivity): <span id="lblThreshold" style="color: var(--accent-color);">40</span></span>
-                            <input type="range" id="valThreshold" class="theme-range" min="10" max="100" value="40" oninput="document.getElementById('lblThreshold').innerText = this.value; saveSettings();">
+                            <span>Sensor Threshold (Sensitivity): <span class="star-btn" data-id="valThreshold" onclick="toggleQuickSetting('valThreshold', 'Sensor Threshold', 'range', this)">☆</span> <span id="lblThreshold" style="color: var(--accent-color); margin-left:10px;">40</span></span>
+                            <input type="range" id="valThreshold" class="theme-range" min="10" max="100" value="40" oninput="document.getElementById('lblThreshold').innerText = this.value;" onchange="debouncedSave();">
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
-                            <span>Sensor Debounce (ms): <span id="lblDebounce" style="color: var(--accent-color);">15ms</span></span>
-                            <input type="range" id="valDebounce" class="theme-range" min="0" max="50" value="15" oninput="document.getElementById('lblDebounce').innerText = this.value + 'ms'; saveSettings();">
+                            <span>Sensor Debounce: <span class="star-btn" data-id="valDebounce" onclick="toggleQuickSetting('valDebounce', 'Sensor Debounce', 'range', this)">☆</span> <span id="lblDebounce" style="color: var(--accent-color); margin-left:10px;">15ms</span></span>
+                            <input type="range" id="valDebounce" class="theme-range" min="0" max="50" value="15" oninput="document.getElementById('lblDebounce').innerText = this.value + 'ms';" onchange="debouncedSave();">
                         </div>
 
                         <label style="display:flex; align-items:center; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
                             <input type="checkbox" id="chkBatterySaver" class="setting-checkbox" onchange="saveSettings()">
                             <span id="lblBatterySaver">Enable Battery Saver Mode</span>
+                            <span class="star-btn" data-id="chkBatterySaver" onclick="toggleQuickSetting('chkBatterySaver', 'Battery Saver', 'checkbox', this)">☆</span>
                         </label>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
                             <span>Sleep Timeout (seconds):</span>
-                            <input type="number" id="valSleepTimeout" min="5" max="300" class="theme-select" style="width: 80px; text-align: center;" oninput="saveSettings()">
+                            <input type="number" id="valSleepTimeout" min="5" max="300" class="theme-select" style="width: 80px; text-align: center;" oninput="debouncedSave()">
                         </div>
                     </div>
 
                 </div>
+
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.34</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -625,6 +661,7 @@
     <script>
         // --- GLOBALS & ENGINE SETTINGS ---
         let currentDevice = ''; let serialPort = null; let serialReader = null;
+        let saveTimeout;
 
         let appSettings = {
             inspectionEnabled: true, voiceAlerts: false, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
@@ -633,8 +670,9 @@
             themeName: 'oled', bgColor: '#000000',
             textColor: '#ffffff', accentColor: '#4CAF50', timerColor: '#ffffff', timerGlow: 'transparent',
             bgImage: '', timerFont: "'Roboto Mono', monospace", timerScale: 1.0, uiOpacity: 1.0,
-            uiBlur: 10, uiRadius: 8,
-            focusStyle: 'fade', focusFadeTime: 0.5
+            uiBlur: 10, uiRadius: 8, focusStyle: 'fade', focusFadeTime: 0.5,
+            cubeTop: 'white', cubeFront: 'green',
+            quickSettings: [] // Array of {id, label, type}
         };
 
         const presetThemes = {
@@ -716,6 +754,55 @@
 
         function setCustomTheme() { document.getElementById('selTheme').value = 'custom'; appSettings.themeName = 'custom'; }
 
+        function toggleQuickSetting(id, label, type, starElem) {
+            if(!appSettings.quickSettings) appSettings.quickSettings = [];
+            let idx = appSettings.quickSettings.findIndex(x => x.id === id);
+            if(idx > -1) {
+                appSettings.quickSettings.splice(idx, 1);
+                starElem.classList.remove('active');
+                starElem.innerText = '☆';
+            } else {
+                if(appSettings.quickSettings.length >= 3) {
+                    showToast('Maximum 3 Quick Settings allowed.');
+                    return;
+                }
+                appSettings.quickSettings.push({id, label, type});
+                starElem.classList.add('active');
+                starElem.innerText = '★';
+            }
+            saveSettings();
+            renderQuickPanel();
+        }
+
+        function toggleQuickPanel() {
+            let p = document.getElementById('quickPanel');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function renderQuickPanel() {
+            let c = document.getElementById('quickPanelContent');
+            c.innerHTML = '';
+            if(!appSettings.quickSettings || appSettings.quickSettings.length === 0) {
+                c.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">No quick settings added. Star them in the Settings tab!</p>';
+                return;
+            }
+            appSettings.quickSettings.forEach(qs => {
+                let row = document.createElement('div');
+                row.style.marginBottom = '12px';
+                if(qs.type === 'checkbox') {
+                    let val = document.getElementById(qs.id).checked;
+                    row.innerHTML = `<label style="display:flex; align-items:center; cursor:pointer; font-size:0.95rem; color:var(--text-color);"><input type="checkbox" class="setting-checkbox" style="transform:scale(1.2); margin-right:10px;" ${val?'checked':''} onchange="document.getElementById('${qs.id}').checked = this.checked; saveSettings();"> ${qs.label}</label>`;
+                } else if(qs.type === 'range') {
+                    let val = document.getElementById(qs.id).value;
+                    row.innerHTML = `<div style="font-size:0.95rem; margin-bottom:5px; color:var(--text-color);">${qs.label}</div><input type="range" class="theme-range" style="width:100%;" min="${document.getElementById(qs.id).min}" max="${document.getElementById(qs.id).max}" step="${document.getElementById(qs.id).step || 1}" value="${val}" onchange="document.getElementById('${qs.id}').value = this.value; debouncedSave();" oninput="if(document.getElementById('${qs.id}').oninput) document.getElementById('${qs.id}').oninput({target: this});">`;
+                } else if(qs.type === 'number') {
+                    let val = document.getElementById(qs.id).value;
+                    row.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.95rem; color:var(--text-color);"><span>${qs.label}</span><input type="number" class="theme-select" style="width:60px; padding:2px;" value="${val}" onchange="document.getElementById('${qs.id}').value = this.value; debouncedSave();"></div>`;
+                }
+                c.appendChild(row);
+            });
+        }
+
         function loadSettings() {
             const saved = localStorage.getItem('archSenseSettings'); if (saved) { appSettings = { ...appSettings, ...JSON.parse(saved) }; }
 
@@ -746,11 +833,31 @@
             document.getElementById('valBlur').value = appSettings.uiBlur !== undefined ? appSettings.uiBlur : 10;
             document.getElementById('lblBlur').innerText = (appSettings.uiBlur !== undefined ? appSettings.uiBlur : 10) + 'px';
 
+            document.getElementById('selCubeTop').value = appSettings.cubeTop || 'white';
+            document.getElementById('selCubeFront').value = appSettings.cubeFront || 'green';
+
             document.getElementById('selFocusStyle').value = appSettings.focusStyle || 'fade'; document.getElementById('valFocusFade').value = appSettings.focusFadeTime !== undefined ? appSettings.focusFadeTime : 0.5;
             document.getElementById('lblFocusFade').innerText = (appSettings.focusFadeTime !== undefined ? appSettings.focusFadeTime : 0.5) + 's';
 
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
+
+            // Initialize Stars
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                let id = btn.getAttribute('data-id');
+                if(appSettings.quickSettings && appSettings.quickSettings.find(x => x.id === id)) {
+                    btn.classList.add('active'); btn.innerText = '★';
+                } else {
+                    btn.classList.remove('active'); btn.innerText = '☆';
+                }
+            });
+            renderQuickPanel();
+
             updateThemeCSS(); if(currentDevice) loadMainApp(currentDevice);
+        }
+
+        function debouncedSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => { saveSettings(); }, 500);
         }
 
         async function saveSettings() {
@@ -775,9 +882,12 @@
             appSettings.uiBlur = parseInt(document.getElementById('valBlur').value) || 0;
             appSettings.focusStyle = document.getElementById('selFocusStyle').value; appSettings.focusFadeTime = parseFloat(document.getElementById('valFocusFade').value);
 
+            appSettings.cubeTop = document.getElementById('selCubeTop').value;
+            appSettings.cubeFront = document.getElementById('selCubeFront').value;
+
             updateThemeCSS(); localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
             if(timerState === 'idle' || timerState === 'stopped') document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
-            updateStatsUI(); generateScramble(); syncBoardConfig();
+            updateStatsUI(); updateScrambleDisplay(); syncBoardConfig();
         }
 
         async function syncBoardConfig() {
@@ -935,10 +1045,33 @@
             moves.forEach(m => { if(!m) return; let f = faces[m[0]]; let d = 1; if(m.includes("'")) d = 3; if(m.includes("2")) d = 2; if(f !== undefined) turnFace(s, f, d); }); return s;
         }
 
+        function getCubeColors() {
+            const top = appSettings.cubeTop || 'white';
+            const front = appSettings.cubeFront || 'green';
+            const colorMap = { 'white': '#ffffff', 'yellow': '#ffeb3b', 'green': '#4CAF50', 'blue': '#2196f3', 'red': '#f44336', 'orange': '#ff9800' };
+            const axes = ['green', 'red', 'blue', 'orange'];
+
+            let U = colorMap[top];
+            let D = colorMap[top === 'white' ? 'yellow' : 'white'];
+            let F = colorMap[front];
+            let B = colorMap[front === 'green' ? 'blue' : (front === 'blue' ? 'green' : (front === 'red' ? 'orange' : 'red'))];
+
+            let fIdx = axes.indexOf(front);
+            let R, L;
+            if (top === 'white') {
+                R = colorMap[axes[(fIdx + 1) % 4]];
+                L = colorMap[axes[(fIdx + 3) % 4]];
+            } else {
+                R = colorMap[axes[(fIdx + 3) % 4]];
+                L = colorMap[axes[(fIdx + 1) % 4]];
+            }
+            return [U, R, F, D, L, B]; // 0=U, 1=R, 2=F, 3=D, 4=L, 5=B
+        }
+
         function renderCube(state) {
             let container = document.getElementById('cubeVisualizer'); container.innerHTML = '';
             let isCross = (currentTrainingMode === 'cross'); let crossIndices = [4, 1, 3, 5, 7, 46, 37, 10, 19];
-            const cubeColors = ['#ffffff', '#f44336', '#4CAF50', '#ffeb3b', '#ff9800', '#2196f3'];
+            const cubeColors = getCubeColors();
 
             for(let i=0; i<54; i++) {
                 let div = document.createElement('div'); div.className = 'cube-piece'; div.style.backgroundColor = cubeColors[state[i]];
@@ -952,6 +1085,7 @@
         function setFocusMode(active) {
             if (active) {
                 if(document.getElementById('sidePanel').classList.contains('open')) togglePanel();
+                document.getElementById('quickPanel').style.display = 'none';
                 document.body.classList.add('focus-mode'); document.body.classList.add('focus-style-' + appSettings.focusStyle);
             }
             else { document.body.classList.remove('focus-mode', 'focus-style-fade', 'focus-style-vignette', 'focus-style-black'); }
@@ -1114,14 +1248,16 @@
                 activeInspectionPenalty = newLast.penalty;
                 applyVisualPenalty(newLast.penalty, newLast.timeMs);
                 document.getElementById('penalty-controls').style.display = 'flex';
+                timerState = 'stopped'; // Allows cascading deletions
             } else {
                 document.getElementById('penalty-controls').style.display = 'none';
                 document.getElementById('mainTimerText').innerText = formatTime(0);
                 document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
                 finalTimeMs = 0;
+                timerState = 'idle';
             }
 
-            document.getElementById('bldSubText').style.display = 'none'; timerState = 'idle'; setFocusMode(false);
+            document.getElementById('bldSubText').style.display = 'none'; setFocusMode(false);
             updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
         }
 
