@@ -81,6 +81,7 @@
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background-color: var(--ui-panel-bg); border-bottom: 1px solid var(--ui-border); z-index: 100; backdrop-filter: blur(10px); }
         .menu-btn { background: var(--ui-dark-bg); color: var(--text-color); border: 1px solid var(--ui-border); padding: 10px 15px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; transition: background 0.2s; width: 100px; text-align: center; }
         .menu-btn:hover { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+        .hw-status { display: flex; gap: 15px; font-size: 1.1rem; color: var(--text-muted); }
 
         .page-view { display: none; flex-grow: 1; padding: 20px 40px; overflow-y: auto; }
         .page-view.active { display: block; }
@@ -119,7 +120,7 @@
         .timer-area { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; position: relative; background-color: transparent; align-items: center; justify-content: space-between; z-index: 100; }
 
         .mode-selector { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .mode-btn { background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .mode-btn { backdrop-filter: blur(10px); background: var(--ui-card-bg); color: var(--text-muted); border: 1px solid var(--ui-border); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
         .mode-btn:hover { background: var(--ui-panel-bg); color: var(--text-color); }
         .mode-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
 
@@ -214,7 +215,9 @@
 <body>
 
     <div id="focusBackdrop" class="focus-backdrop"></div>
-    <div id="toast-container"></div> <div id="setupModal" class="modal-overlay">
+    <div id="toast-container"></div>
+
+    <div id="setupModal" class="modal-overlay">
         <div class="modal-content">
             <h2>Hardware Setup</h2>
             <p class="subtitle">Select your device to configure the connection protocol.</p>
@@ -238,7 +241,7 @@
     <div id="sessionModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 600px;">
             <h2>Manage Sessions</h2>
-            <p class="subtitle" style="margin-bottom: 1rem;">Rename, reorder, or delete your saved sessions.</p>
+            <p class="subtitle" style="margin-bottom: 1rem;">Rename, reorder, or link hardware profiles to your sessions.</p>
             <div id="sessionListContainer" class="session-list-container"></div>
             <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                 <button class="action-btn action-btn-green" onclick="createNewSession()">➕ Add New Session</button>
@@ -267,7 +270,7 @@
         <div id="sidePanel">
             <div class="panel-header"><h3 style="margin: 0; text-align: center; width: 100%; color: var(--text-color); font-size: 1.5rem; letter-spacing: 1px;">ArchSense</h3></div>
             <div class="nav-menu">
-                <button class="nav-btn" onclick="openPage('page-timer', 'Main Timer', this)">⏱️ Timer</button>
+                <button class="nav-btn" class="active" onclick="openPage('page-timer', 'Main Timer', this)">⏱️ Timer</button>
                 <button class="nav-btn" onclick="openPage('page-analytics', 'Data Analytics', this)">📈 Analytics</button>
                 <button class="nav-btn" onclick="openPage('page-settings', 'Settings', this)">⚙️ Settings</button>
                 <button class="nav-btn" onclick="openPage('page-data', 'Session Data & Export', this)">📁 Data & Export</button>
@@ -277,8 +280,14 @@
 
         <div id="mainContent">
             <div class="top-bar hide-on-focus">
-                <button id="mainToggleBtn" class="menu-btn" onclick="togglePanel()">☰ Menu</button>
-                <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color);">Main Timer</span>
+                <div style="display: flex; gap:15px; align-items:center;">
+                    <button id="mainToggleBtn" class="menu-btn" onclick="togglePanel()">☰ Menu</button>
+                    <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color);">Main Timer</span>
+                </div>
+                <div class="hw-status">
+                    <span id="statusIcon" title="Connection Status">🔴</span>
+                    <span id="battIcon" title="Battery Level">🔋 --%</span>
+                </div>
             </div>
 
             <div id="page-timer" class="page-view active">
@@ -519,6 +528,15 @@
 
                         <div id="hardwareSettingsAnchor"></div>
 
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                            <span>Sensor Threshold (Sensitivity): <span id="lblThreshold" style="color: var(--accent-color);">40</span></span>
+                            <input type="range" id="valThreshold" class="theme-range" min="10" max="100" value="40" oninput="document.getElementById('lblThreshold').innerText = this.value; saveSettings();">
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; font-size: 1.1rem;">
+                            <span>Sensor Debounce (ms): <span id="lblDebounce" style="color: var(--accent-color);">15ms</span></span>
+                            <input type="range" id="valDebounce" class="theme-range" min="0" max="50" value="15" oninput="document.getElementById('lblDebounce').innerText = this.value + 'ms'; saveSettings();">
+                        </div>
+
                         <label style="display:flex; align-items:center; margin-bottom:15px; font-size: 1.1rem; cursor:pointer;">
                             <input type="checkbox" id="chkBatterySaver" class="setting-checkbox" onchange="saveSettings()">
                             <span id="lblBatterySaver">Enable Battery Saver Mode</span>
@@ -589,7 +607,8 @@
         let appSettings = {
             inspectionEnabled: true, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
             scrambleMoves: ['U', 'D', 'R', 'L', 'F', 'B'], trimPct: 5, plusPenalty: 2000, timerDecimals: 3,
-            timerUpdateRate: 10, batterySaver: true, sleepTimeout: 30, themeName: 'oled', bgColor: '#000000',
+            timerUpdateRate: 10, batterySaver: true, sleepTimeout: 30, sensorThreshold: 40, sensorDebounce: 15,
+            themeName: 'oled', bgColor: '#000000',
             textColor: '#ffffff', accentColor: '#4CAF50', timerColor: '#ffffff', timerGlow: 'transparent',
             bgImage: '', timerFont: "'Roboto Mono', monospace", timerScale: 1.0, uiOpacity: 1.0,
             focusStyle: 'fade', focusFadeTime: 0.5
@@ -672,6 +691,10 @@
             document.getElementById('valScrambleLen').value = appSettings.scrambleLen; document.getElementById('valTimerDecimals').value = appSettings.timerDecimals;
             document.getElementById('valTimerUpdateRate').value = appSettings.timerUpdateRate; document.getElementById('chkBatterySaver').checked = appSettings.batterySaver;
             document.getElementById('valSleepTimeout').value = appSettings.sleepTimeout;
+            document.getElementById('valThreshold').value = appSettings.sensorThreshold;
+            document.getElementById('lblThreshold').innerText = appSettings.sensorThreshold;
+            document.getElementById('valDebounce').value = appSettings.sensorDebounce;
+            document.getElementById('lblDebounce').innerText = appSettings.sensorDebounce + 'ms';
 
             if(appSettings.scrambleMoves) { document.querySelectorAll('#scrambleMovesCheckboxes input').forEach(cb => { cb.checked = appSettings.scrambleMoves.includes(cb.value); }); }
 
@@ -698,6 +721,7 @@
             appSettings.scrambleLen = parseInt(document.getElementById('valScrambleLen').value) || 20; appSettings.timerDecimals = parseInt(document.getElementById('valTimerDecimals').value) || 3;
             appSettings.timerUpdateRate = parseInt(document.getElementById('valTimerUpdateRate').value) || 10; appSettings.scrambleMoves = selectedMoves;
             appSettings.batterySaver = document.getElementById('chkBatterySaver').checked; appSettings.sleepTimeout = parseInt(document.getElementById('valSleepTimeout').value) || 30;
+            appSettings.sensorThreshold = parseInt(document.getElementById('valThreshold').value) || 40; appSettings.sensorDebounce = parseInt(document.getElementById('valDebounce').value) || 15;
 
             appSettings.timerFont = document.getElementById('selFont').value; appSettings.timerScale = parseFloat(document.getElementById('valTimerScale').value);
             appSettings.bgColor = document.getElementById('valBgColor').value; appSettings.textColor = document.getElementById('valTextColor').value;
@@ -711,9 +735,31 @@
         }
 
         async function syncBoardConfig() {
-            const sleepFlag = appSettings.batterySaver ? 1 : 0; const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
-            const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}\n`;
-            if (serialPort && serialPort.writable) { try { const writer = serialPort.writable.getWriter(); await writer.write(new TextEncoder().encode(configCmd)); writer.releaseLock(); } catch (e) {} }
+            const session = getActiveSession();
+            const profile = session.hwProfile || 'performance';
+            let isStealth = (profile === 'stealth');
+            let sleepFlag = appSettings.batterySaver ? 1 : 0;
+            if (isStealth) sleepFlag = 1; // Force screen off
+            const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
+            const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}|SENS:${appSettings.sensorThreshold}:${appSettings.sensorDebounce}|PROF:${profile.toUpperCase()}\n`;
+
+            console.log("Syncing Config to Board:", configCmd);
+            if(currentDevice !== 'keyboard') showToast("⚙️ Board Sync: " + profile.toUpperCase() + " Profile");
+
+            // Mock TopBar status updates on sync
+            document.getElementById('statusIcon').innerText = '🟢';
+            document.getElementById('battIcon').innerText = '🔋 87%';
+
+            if (serialPort && serialPort.writable) {
+                try {
+                    const writer = serialPort.writable.getWriter();
+                    await writer.write(new TextEncoder().encode(configCmd));
+                    writer.releaseLock();
+                } catch (e) {
+                    console.error("Failed to send config to board", e);
+                    document.getElementById('statusIcon').innerText = '🔴';
+                }
+            }
         }
 
         // --- 2. DATA & SESSION MANAGEMENT ---
@@ -722,14 +768,17 @@
             if (savedSessions) { sessions = JSON.parse(savedSessions); activeSessionId = savedActiveId ? parseInt(savedActiveId) : sessions[0].id; }
             else {
                 const legacyData = localStorage.getItem('stackmatSessionData');
-                if (legacyData) sessions = [{ id: Date.now(), name: "Session 1", solves: JSON.parse(legacyData) }];
-                else sessions = [{ id: Date.now(), name: "Session 1", solves: [] }];
+                if (legacyData) sessions = [{ id: Date.now(), name: "Session 1", solves: JSON.parse(legacyData), hwProfile: 'performance' }];
+                else sessions = [{ id: Date.now(), name: "Session 1", solves: [], hwProfile: 'performance' }];
                 activeSessionId = sessions[0].id; persistDatabase();
             }
+            ensureProfiles();
             updateSessionUI(); updateStatsUI(); generateScramble();
         }
 
-        function persistDatabase() { localStorage.setItem('archSenseSessions', JSON.stringify(sessions)); localStorage.setItem('archSenseActiveSessionId', activeSessionId.toString()); }
+        function ensureProfiles() { sessions.forEach(s => { if(!s.hwProfile) s.hwProfile = 'performance'; }); }
+
+        function persistDatabase() { localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); localStorage.setItem('archSenseSessions', JSON.stringify(sessions)); localStorage.setItem('archSenseActiveSessionId', activeSessionId.toString()); }
         function getActiveSession() { return sessions.find(s => s.id === activeSessionId) || sessions[0]; }
         function getFilteredSolves() { let session = getActiveSession(); if(!session) return []; return session.solves.filter(s => (s.mode || 'standard') === currentTrainingMode); }
 
@@ -739,8 +788,8 @@
             const activeName = getActiveSession().name; document.getElementById('sessionTitle').innerText = activeName; document.getElementById('dangerZoneSessionName').innerText = activeName;
         }
 
-        function switchSession(id) { activeSessionId = parseInt(id); persistDatabase(); updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay(); }
-        function createNewSession() { const newId = Date.now(); sessions.push({ id: newId, name: `Session ${sessions.length + 1}`, solves: [] }); activeSessionId = newId; persistDatabase(); updateSessionUI(); updateStatsUI(); renderSessionManagerList(); generateScramble(); }
+        function switchSession(id) { activeSessionId = parseInt(id); persistDatabase(); updateSessionUI(); updateStatsUI(); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay(); syncBoardConfig(); }
+        function createNewSession() { const newId = Date.now(); sessions.push({ id: newId, name: `Session ${sessions.length + 1}`, solves: [], hwProfile: 'performance' }); activeSessionId = newId; persistDatabase(); updateSessionUI(); updateStatsUI(); renderSessionManagerList(); generateScramble(); syncBoardConfig(); }
         function clearCurrentSession() { if(confirm(`Are you sure you want to delete all solves in "${getActiveSession().name}"?`)) { getActiveSession().solves = []; persistDatabase(); updateSessionUI(); updateStatsUI(); scrambleViewIndex = 0; updateScrambleDisplay(); openPage('page-timer', 'Main Timer', document.querySelector('.nav-btn')); } }
         function openSessionManager() { renderSessionManagerList(); document.getElementById('sessionModal').style.display = 'flex'; }
         function closeSessionManager() { document.getElementById('sessionModal').style.display = 'none'; }
@@ -754,6 +803,13 @@
                 let dnBtn = document.createElement('button'); dnBtn.className = 'session-row-btn'; dnBtn.innerText = '↓';
                 if (index === sessions.length - 1) { dnBtn.disabled = true; dnBtn.style.opacity = '0.3'; } else dnBtn.onclick = () => moveSession(index, 1); row.appendChild(dnBtn);
                 let input = document.createElement('input'); input.type = 'text'; input.value = s.name; input.oninput = (e) => renameSession(s.id, e.target.value); row.appendChild(input);
+
+                // New Hardware Profile Dropdown
+                let profileSel = document.createElement('select'); profileSel.className = 'theme-select'; profileSel.style.width = '120px'; profileSel.style.fontSize = '0.9rem';
+                profileSel.innerHTML = `<option value="performance" ${s.hwProfile==='performance'?'selected':''}>Performance</option><option value="stealth" ${s.hwProfile==='stealth'?'selected':''}>Stealth (BLD)</option>`;
+                profileSel.onchange = (e) => { s.hwProfile = e.target.value; persistDatabase(); if(activeSessionId === s.id) syncBoardConfig(); };
+                row.appendChild(profileSel);
+
                 let span = document.createElement('span'); span.style.color = 'var(--text-muted)'; span.style.fontSize = '0.9rem'; span.style.minWidth = '60px'; span.style.textAlign = 'right'; span.innerText = `${s.solves.length} solves`; row.appendChild(span);
                 let delBtn = document.createElement('button'); delBtn.className = 'session-row-btn del'; delBtn.innerText = '🗑️';
                 if (sessions.length === 1) delBtn.disabled = true; else delBtn.onclick = () => deleteSession(s.id); row.appendChild(delBtn);
@@ -1187,7 +1243,7 @@
                                     let penState = 'OK'; if (solve[0][0] === -1) penState = 'DNF'; else if (solve[0][0] > 0) penState = '+2';
                                     archSolves.push({ timeMs: solve[0][1], penalty: penState, scramble: solve[1] || "", mode: 'standard' });
                                 });
-                                newSessions.push({ id: idCounter++, name: sName, solves: archSolves });
+                                newSessions.push({ id: idCounter++, name: sName, solves: archSolves, hwProfile: 'performance' });
                             }
                         }
                         if (newSessions.length > 0) {
@@ -1202,7 +1258,7 @@
                             const row = rows[i].trim(); if (!row) continue; const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                             if (cols.length >= 5) {
                                 let sName = cols[0].replace(/(^"|"$)/g, ''); let existingSession = sessions.find(s => s.name === sName);
-                                if (!existingSession) { existingSession = { id: Date.now() + i, name: sName, solves: [] }; sessions.push(existingSession); }
+                                if (!existingSession) { existingSession = { id: Date.now() + i, name: sName, solves: [], hwProfile: 'performance' }; sessions.push(existingSession); }
                                 existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, ''), mode:'standard' });
                             }
                         }
@@ -1248,7 +1304,6 @@
 
         // --- 10. SCRAMBLE ENGINE ---
         function updateScrambleDisplay() {
-            let session = getActiveSession();
             let fSolves = getFilteredSolves();
             let maxIndex = fSolves.length;
             let displayStr = ""; let hintStr = "";
