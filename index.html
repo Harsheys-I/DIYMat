@@ -673,7 +673,7 @@
 
                 </div>
 
-                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.55 (OBS Ready)</p>
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.56 (Splits Fixed)</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -750,7 +750,7 @@
         // --- GLOBALS & ENGINE SETTINGS ---
         let currentDevice = ''; let serialPort = null; let serialReader = null;
         let saveTimeout;
-        const obsChannel = new BroadcastChannel('archsense_obs_sync'); // NEW: OBS Broadcast Channel
+        const obsChannel = new BroadcastChannel('archsense_obs_sync'); // OBS Broadcast Channel
 
         let appSettings = {
             inspectionEnabled: true, voiceAlerts: false, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
@@ -783,8 +783,9 @@
         let alerted8 = false; let alerted12 = false;
 
         // Splits Mode Data
-        let currentSplits = []; // Stores cumulative timestamps
+        let currentSplits = [];
         let splitDebounceTime = 0;
+        let solveStartedClean = false; // NEW: Prevents split logging upon liftoff
         const splitLabels = ['Cross', 'F2L', 'OLL', 'PLL'];
 
         // Sensor States
@@ -1093,9 +1094,8 @@
             const el = document.getElementById('mainTimerText');
             el.innerText = text;
             if (colorStr) el.style.color = colorStr;
-            else colorStr = el.style.color; // Use existing color if null passed
+            else colorStr = el.style.color;
 
-            // Push to OBS Popout Window
             obsChannel.postMessage({ text: text, color: colorStr });
         }
 
@@ -1121,7 +1121,6 @@
                             if (e.data.text) timerEl.innerText = e.data.text;
                             if (e.data.color) {
                                 let c = e.data.color;
-                                // Convert CSS variables to solid white for OBS readability against green
                                 if (c.includes('var(')) c = 'white';
                                 timerEl.style.color = c;
                             }
@@ -1222,7 +1221,7 @@
                 let seg = i === 0 ? currentSplits[0] : currentSplits[i] - currentSplits[i-1];
                 htmlStr += `<span style="color:var(--accent-color); font-weight:bold;">${splitLabels[i]}:</span> ${formatTime(seg)} &nbsp;&nbsp;`;
             }
-            if (forceEnd && currentSplits.length < 4) { // Finish the final segment if timer stopped
+            if (forceEnd && currentSplits.length < 4) {
                 let prevTime = currentSplits.length > 0 ? currentSplits[currentSplits.length-1] : 0;
                 let finalSeg = finalTimeMs - prevTime;
                 let label = splitLabels[currentSplits.length] || 'End';
@@ -1233,6 +1232,8 @@
 
         function handleSinglePadHit() {
             if (!document.getElementById('page-timer').classList.contains('active')) return;
+            if (!solveStartedClean) return; // FIX: Ensure hands were lifted before allowing a split
+
             if (timerState === 'running' && currentTrainingMode === 'splits') {
                 let now = Date.now();
                 if (now - splitDebounceTime > 500) {
@@ -1267,8 +1268,11 @@
                             updateDiagnosticsUI(lVal, rVal);
                             let bothNow = lVal && rVal; let oneNow = lVal || rVal;
 
+                            if (!oneNow) solveStartedClean = true; // FIX: Unlocks splits once hands fully clear mat
+
                             if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
                             else if (!bothNow && wasBothDown) { handlePadUp(); wasBothDown = false; }
+
                             if (!bothNow && oneNow && timerState === 'running') { handleSinglePadHit(); }
                         }
                         else if (line === "DOWN") handlePadDown(); else if (line === "UP") handlePadUp();
@@ -1287,6 +1291,7 @@
                 if (e.code === 'ArrowLeft') simLeft = true; if (e.code === 'ArrowRight') simRight = true; if (e.code === 'Space') { simLeft = true; simRight = true; }
                 updateDiagnosticsUI(simLeft, simRight);
                 let bothNow = simLeft && simRight; let oneNow = simLeft || simRight;
+
                 if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
                 if (!bothNow && oneNow && timerState === 'running') { handleSinglePadHit(); }
             } else {
@@ -1300,7 +1305,10 @@
             if (currentDevice === 'keyboard') {
                 if (e.code === 'ArrowLeft') simLeft = false; if (e.code === 'ArrowRight') simRight = false; if (e.code === 'Space') { simLeft = false; simRight = false; }
                 updateDiagnosticsUI(simLeft, simRight);
-                let bothNow = simLeft && simRight;
+                let bothNow = simLeft && simRight; let oneNow = simLeft || simRight;
+
+                if (!oneNow) solveStartedClean = true; // FIX: Unlocks splits once hands fully clear keyboard
+
                 if (!bothNow && wasBothDown) { handlePadUp(); wasBothDown = false; }
             } else {
                 if (e.code === 'Space') handlePadUp();
@@ -1380,7 +1388,10 @@
             else { timerState = 'running'; setMainTimer(formatTime(0), 'var(--timer-color)'); }
             document.getElementById('bldSubText').style.display = 'none';
 
-            currentSplits = []; splitDebounceTime = 0; startTime = Date.now();
+            currentSplits = [];
+            splitDebounceTime = Date.now(); // FIX: Align debounce with actual start
+            solveStartedClean = false; // FIX: Lock splits until hands completely lift
+            startTime = Date.now();
 
             timerInterval = setInterval(() => {
                 let c = 'var(--timer-color)';
@@ -1392,7 +1403,6 @@
         function stopTimer() {
             timerState = 'stopped'; clearInterval(timerInterval); finalTimeMs = Date.now() - startTime; setFocusMode(false);
 
-            // Clean up accidental split
             if (currentTrainingMode === 'splits' && currentSplits.length > 0) {
                 if (finalTimeMs - currentSplits[currentSplits.length - 1] < 300) { currentSplits.pop(); }
             }
@@ -1420,7 +1430,7 @@
                 let bldEl = document.getElementById('bldSubText'); bldEl.style.display = 'block';
                 bldEl.innerHTML = `Memo: ${formatTime(bldMemoTime)} | Exec: ${formatTime(finalTimeMs - bldMemoTime)}`;
             } else if (currentTrainingMode === 'splits') {
-                updateSplitsDisplay(true); // Draw final breakdown
+                updateSplitsDisplay(true);
             }
 
             if (globalPbSingle < oldPbSingle && globalPbSingle !== Infinity) showToast("🏆 New Personal Best Single! " + formatTime(globalPbSingle * 1000));
@@ -1775,7 +1785,7 @@
         function prevScramble(e) { if(e) e.stopPropagation(); if (scrambleViewIndex > 0) { scrambleViewIndex--; updateScrambleDisplay(); } }
         function nextScramble(e) { if(e) e.stopPropagation(); let maxIndex = getFilteredSolves().length; if (scrambleViewIndex < maxIndex) { scrambleViewIndex++; updateScrambleDisplay(); } else { generateScramble(); } }
 
-        // --- 11. OLED DESIGNER LOGIC (REWRITTEN CANVAS DRAWING) ---
+        // --- 11. OLED DESIGNER LOGIC ---
         function switchOledTab(tab) {
             document.getElementById('oledTabLayout').style.display = tab === 'layout' ? 'block' : 'none';
             document.getElementById('oledTabLogo').style.display = tab === 'logo' ? 'block' : 'none';
