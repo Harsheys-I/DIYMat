@@ -323,6 +323,7 @@
                 <div style="display: flex; gap:15px; align-items:center;">
                     <button id="mainToggleBtn" class="menu-btn" onclick="togglePanel()">☰ Menu</button>
                     <button class="menu-btn" onclick="toggleQuickPanel()" style="width: auto;" title="Quick Settings">⚡ Quick</button>
+                    <button class="menu-btn action-btn-green" onclick="openOBSMode()" style="width: auto;" title="Pop-out Chroma Key Timer">🎥 OBS</button>
                     <span id="pageTitle" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-color);">Main Timer</span>
                 </div>
                 <div class="hw-status">
@@ -672,7 +673,7 @@
 
                 </div>
 
-                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.50 (Splits Mode)</p>
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.55 (OBS Ready)</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -749,6 +750,7 @@
         // --- GLOBALS & ENGINE SETTINGS ---
         let currentDevice = ''; let serialPort = null; let serialReader = null;
         let saveTimeout;
+        const obsChannel = new BroadcastChannel('archsense_obs_sync'); // NEW: OBS Broadcast Channel
 
         let appSettings = {
             inspectionEnabled: true, voiceAlerts: false, inspectionTime: 15, inspGrace: 2, holdDelay: 0.6, scrambleLen: 20,
@@ -781,8 +783,9 @@
         let alerted8 = false; let alerted12 = false;
 
         // Splits Mode Data
-        let currentSplits = [];
+        let currentSplits = []; // Stores cumulative timestamps
         let splitDebounceTime = 0;
+        const splitLabels = ['Cross', 'F2L', 'OLL', 'PLL'];
 
         // Sensor States
         let simLeft = false; let simRight = false; let wasBothDown = false;
@@ -792,10 +795,10 @@
         let isDrawingOled = false; let drawModeOled = 1;
         let lastDrawX = 0, lastDrawY = 0;
 
-        // PB Global Trackers for Projections and Streaks
+        // PB Global Trackers
         let globalPbSingle = Infinity; let globalPbAo5 = Infinity; let globalPbAo12 = Infinity; let globalPbAo100 = Infinity;
 
-        // --- 1. INITIALIZATION & THEMES ---
+        // --- 1. INITIALIZATION, THEMES & UI ENGINE ---
         document.addEventListener('DOMContentLoaded', () => {
             currentDevice = localStorage.getItem('stackmatDevice');
             if (!currentDevice) document.getElementById('setupModal').style.display = 'flex';
@@ -812,9 +815,7 @@
 
         function speakText(text) {
             if ('speechSynthesis' in window && appSettings.voiceAlerts) {
-                let msg = new SpeechSynthesisUtterance(text);
-                msg.rate = 1.2;
-                window.speechSynthesis.speak(msg);
+                let msg = new SpeechSynthesisUtterance(text); msg.rate = 1.2; window.speechSynthesis.speak(msg);
             }
         }
 
@@ -859,36 +860,25 @@
             let idx = appSettings.quickSettings.findIndex(x => x.id === id);
             if(idx > -1) {
                 appSettings.quickSettings.splice(idx, 1);
-                starElem.classList.remove('active');
-                starElem.innerText = '☆';
+                starElem.classList.remove('active'); starElem.innerText = '☆';
             } else {
-                if(appSettings.quickSettings.length >= 3) {
-                    showToast('Maximum 3 Quick Settings allowed.');
-                    return;
-                }
-                appSettings.quickSettings.push({id, label, type});
-                starElem.classList.add('active');
-                starElem.innerText = '★';
+                if(appSettings.quickSettings.length >= 3) { showToast('Maximum 3 Quick Settings allowed.'); return; }
+                appSettings.quickSettings.push({id, label, type}); starElem.classList.add('active'); starElem.innerText = '★';
             }
-            saveSettings();
-            renderQuickPanel();
+            saveSettings(); renderQuickPanel();
         }
 
         function toggleQuickPanel() {
-            let p = document.getElementById('quickPanel');
-            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+            let p = document.getElementById('quickPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none';
         }
 
         function renderQuickPanel() {
-            let c = document.getElementById('quickPanelContent');
-            c.innerHTML = '';
+            let c = document.getElementById('quickPanelContent'); c.innerHTML = '';
             if(!appSettings.quickSettings || appSettings.quickSettings.length === 0) {
-                c.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">No quick settings added. Star them in the Settings tab!</p>';
-                return;
+                c.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">No quick settings added. Star them in the Settings tab!</p>'; return;
             }
             appSettings.quickSettings.forEach(qs => {
-                let row = document.createElement('div');
-                row.style.marginBottom = '12px';
+                let row = document.createElement('div'); row.style.marginBottom = '12px';
                 if(qs.type === 'checkbox') {
                     let val = document.getElementById(qs.id).checked;
                     row.innerHTML = `<label style="display:flex; align-items:center; cursor:pointer; font-size:0.95rem; color:var(--text-color);"><input type="checkbox" class="setting-checkbox" style="transform:scale(1.2); margin-right:10px;" ${val?'checked':''} onchange="document.getElementById('${qs.id}').checked = this.checked; saveSettings();"> ${qs.label}</label>`;
@@ -913,10 +903,8 @@
             document.getElementById('valTimerUpdateRate').value = appSettings.timerUpdateRate; document.getElementById('chkBatterySaver').checked = appSettings.batterySaver;
             document.getElementById('chkVoice').checked = appSettings.voiceAlerts;
             document.getElementById('valSleepTimeout').value = appSettings.sleepTimeout;
-            document.getElementById('valThreshold').value = appSettings.sensorThreshold;
-            document.getElementById('lblThreshold').innerText = appSettings.sensorThreshold;
-            document.getElementById('valDebounce').value = appSettings.sensorDebounce;
-            document.getElementById('lblDebounce').innerText = appSettings.sensorDebounce + 'ms';
+            document.getElementById('valThreshold').value = appSettings.sensorThreshold; document.getElementById('lblThreshold').innerText = appSettings.sensorThreshold;
+            document.getElementById('valDebounce').value = appSettings.sensorDebounce; document.getElementById('lblDebounce').innerText = appSettings.sensorDebounce + 'ms';
 
             if(appSettings.scrambleMoves) { document.querySelectorAll('#scrambleMovesCheckboxes input').forEach(cb => { cb.checked = appSettings.scrambleMoves.includes(cb.value); }); }
 
@@ -940,28 +928,20 @@
             document.getElementById('lblFocusFade').innerText = (appSettings.focusFadeTime !== undefined ? appSettings.focusFadeTime : 0.5) + 's';
 
             document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
-
             document.getElementById('selOledLine2').value = appSettings.oledLine2 || 'ao5';
             updateOledPreview();
 
-            // Initialize Stars
             document.querySelectorAll('.star-btn').forEach(btn => {
                 let id = btn.getAttribute('data-id');
-                if(appSettings.quickSettings && appSettings.quickSettings.find(x => x.id === id)) {
-                    btn.classList.add('active'); btn.innerText = '★';
-                } else {
-                    btn.classList.remove('active'); btn.innerText = '☆';
-                }
+                if(appSettings.quickSettings && appSettings.quickSettings.find(x => x.id === id)) { btn.classList.add('active'); btn.innerText = '★'; }
+                else { btn.classList.remove('active'); btn.innerText = '☆'; }
             });
             renderQuickPanel();
 
             updateThemeCSS(); if(currentDevice) loadMainApp(currentDevice);
         }
 
-        function debouncedSave() {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => { saveSettings(); }, 500);
-        }
+        function debouncedSave() { clearTimeout(saveTimeout); saveTimeout = setTimeout(() => { saveSettings(); }, 500); }
 
         async function saveSettings() {
             let selectedMoves = Array.from(document.querySelectorAll('#scrambleMovesCheckboxes input:checked')).map(cb => cb.value);
@@ -984,23 +964,17 @@
             appSettings.uiRadius = parseInt(document.getElementById('valRadius').value) || 0;
             appSettings.uiBlur = parseInt(document.getElementById('valBlur').value) || 0;
             appSettings.focusStyle = document.getElementById('selFocusStyle').value; appSettings.focusFadeTime = parseFloat(document.getElementById('valFocusFade').value);
-
-            appSettings.cubeTop = document.getElementById('selCubeTop').value;
-            appSettings.cubeFront = document.getElementById('selCubeFront').value;
-
+            appSettings.cubeTop = document.getElementById('selCubeTop').value; appSettings.cubeFront = document.getElementById('selCubeFront').value;
             appSettings.oledLine2 = document.getElementById('selOledLine2').value;
 
             updateThemeCSS(); localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); document.getElementById('btnPenaltyPlus').innerText = `+${appSettings.plusPenalty / 1000}`;
-            if(timerState === 'idle' || timerState === 'stopped') document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
+            if(timerState === 'idle' || timerState === 'stopped') setMainTimer(formatTime(finalTimeMs));
             updateStatsUI(); updateScrambleDisplay(); syncBoardConfig();
         }
 
         async function syncBoardConfig() {
-            const session = getActiveSession();
-            const profile = session.hwProfile || 'performance';
-            let isStealth = (profile === 'stealth');
-            let sleepFlag = appSettings.batterySaver ? 1 : 0;
-            if (isStealth) sleepFlag = 1; // Force screen off
+            const session = getActiveSession(); const profile = session.hwProfile || 'performance';
+            let isStealth = (profile === 'stealth'); let sleepFlag = appSettings.batterySaver ? 1 : 0; if (isStealth) sleepFlag = 1;
             const inspFlag = appSettings.inspectionEnabled ? 1 : 0;
 
             const configCmd = `CFG:SLEEP:${sleepFlag}:${appSettings.sleepTimeout}|INSP:${inspFlag}:${appSettings.inspectionTime}:${appSettings.inspGrace}|SENS:${appSettings.sensorThreshold}:${appSettings.sensorDebounce}|PROF:${profile.toUpperCase()}\n`;
@@ -1008,18 +982,14 @@
             console.log("Syncing Config to Board:", configCmd);
             if(currentDevice !== 'keyboard') showToast("⚙️ Board Sync: " + profile.toUpperCase() + " Profile");
 
-            document.getElementById('statusIcon').innerText = '🟢';
-            document.getElementById('battIcon').innerText = '🔋 87%';
+            document.getElementById('statusIcon').innerText = '🟢'; document.getElementById('battIcon').innerText = '🔋 87%';
 
             if (serialPort && serialPort.writable) {
                 try {
                     const writer = serialPort.writable.getWriter();
                     await writer.write(new TextEncoder().encode(configCmd));
                     writer.releaseLock();
-                } catch (e) {
-                    console.error("Failed to send config to board", e);
-                    document.getElementById('statusIcon').innerText = '🔴';
-                }
+                } catch (e) { document.getElementById('statusIcon').innerText = '🔴'; }
             }
         }
 
@@ -1033,12 +1003,10 @@
                 else sessions = [{ id: Date.now(), name: "Session 1", solves: [], hwProfile: 'performance' }];
                 activeSessionId = sessions[0].id; persistDatabase();
             }
-            ensureProfiles();
-            updateSessionUI(); updateStatsUI(); generateScramble();
+            ensureProfiles(); updateSessionUI(); updateStatsUI(); generateScramble();
         }
 
         function ensureProfiles() { sessions.forEach(s => { if(!s.hwProfile) s.hwProfile = 'performance'; }); }
-
         function persistDatabase() { localStorage.setItem('archSenseSettings', JSON.stringify(appSettings)); localStorage.setItem('archSenseSessions', JSON.stringify(sessions)); localStorage.setItem('archSenseActiveSessionId', activeSessionId.toString()); }
         function getActiveSession() { return sessions.find(s => s.id === activeSessionId) || sessions[0]; }
         function getFilteredSolves() { let session = getActiveSession(); if(!session) return []; return session.solves.filter(s => (s.mode || 'standard') === currentTrainingMode); }
@@ -1100,12 +1068,12 @@
                 hwBlock.style.display = 'block'; lblSaver.innerText = 'Turn off OLED Screen (Battery Saver)'; offlineBtn.style.display = 'inline-block';
                 if (dynamicSettings && hardwareAnchor) hardwareAnchor.appendChild(dynamicSettings);
                 document.getElementById('proOledSettings').style.display = 'block';
-                initOledCanvas(); // Boot up the Canvas Designer
-                if(!appSettings.batterySaver) document.getElementById('mainTimerText').innerText = "Board Active"; else document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
+                initOledCanvas();
+                if(!appSettings.batterySaver) setMainTimer("Board Active"); else setMainTimer(formatTime(finalTimeMs));
             } else {
                 if (dynamicSettings && softwareAnchor) softwareAnchor.appendChild(dynamicSettings);
                 document.getElementById('proOledSettings').style.display = 'none';
-                document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs);
+                setMainTimer(formatTime(finalTimeMs));
             }
         }
 
@@ -1113,20 +1081,66 @@
         function togglePanel() { const panel = document.getElementById('sidePanel'); const mainContent = document.getElementById('mainContent'); const toggleBtn = document.getElementById('mainToggleBtn'); panel.classList.toggle('open'); mainContent.classList.toggle('shifted'); toggleBtn.innerText = panel.classList.contains('open') ? '✖ Close' : '☰ Menu'; }
 
         function openPage(pageId, pageTitleText, btnElement) {
-            const isAlreadyActive = btnElement.classList.contains('active');
-            if (isAlreadyActive) return; // Prevent toggling out of view on click
-
+            if (btnElement.classList.contains('active')) return;
             document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(pageId).classList.add('active'); btnElement.classList.add('active'); document.getElementById('pageTitle').innerText = pageTitleText;
             if (pageId === 'page-analytics') updateAnalyticsUI();
         }
 
+        // --- NEW: TIMER UI UPDATER (Syncs to OBS Window seamlessly) ---
+        function setMainTimer(text, colorStr) {
+            const el = document.getElementById('mainTimerText');
+            el.innerText = text;
+            if (colorStr) el.style.color = colorStr;
+            else colorStr = el.style.color; // Use existing color if null passed
+
+            // Push to OBS Popout Window
+            obsChannel.postMessage({ text: text, color: colorStr });
+        }
+
+        function openOBSMode() {
+            const obsWin = window.open("", "OBSTimer", "width=800,height=300");
+            const obsHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>OBS Timer Window</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
+                    <style>
+                        body { background-color: #00FF00; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+                        #timer { font-family: 'Roboto Mono', monospace; font-size: 25vw; font-weight: bold; color: white; text-shadow: 2px 2px 5px rgba(0,0,0,0.5); font-variant-numeric: tabular-nums; }
+                    </style>
+                </head>
+                <body>
+                    <div id="timer">0.000</div>
+                    <script>
+                        const channel = new BroadcastChannel('archsense_obs_sync');
+                        const timerEl = document.getElementById('timer');
+                        channel.onmessage = (e) => {
+                            if (e.data.text) timerEl.innerText = e.data.text;
+                            if (e.data.color) {
+                                let c = e.data.color;
+                                // Convert CSS variables to solid white for OBS readability against green
+                                if (c.includes('var(')) c = 'white';
+                                timerEl.style.color = c;
+                            }
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+            obsWin.document.open();
+            obsWin.document.write(obsHtml);
+            obsWin.document.close();
+        }
+
+
         // --- 4. TRAINING MODES & CUBE VISUALIZER ---
         function setTrainingMode(mode, btnElement) {
             currentTrainingMode = mode; document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); btnElement.classList.add('active');
             scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay(); updateStatsUI();
-            document.getElementById('bldSubText').style.display = 'none'; document.getElementById('mainTimerText').innerText = formatTime(0);
+            document.getElementById('bldSubText').style.display = 'none'; setMainTimer(formatTime(0));
         }
 
         function createCubeState() {
@@ -1156,26 +1170,17 @@
         }
 
         function getCubeColors() {
-            const top = appSettings.cubeTop || 'white';
-            const front = appSettings.cubeFront || 'green';
+            const top = appSettings.cubeTop || 'white'; const front = appSettings.cubeFront || 'green';
             const colorMap = { 'white': '#ffffff', 'yellow': '#ffeb3b', 'green': '#4CAF50', 'blue': '#2196f3', 'red': '#f44336', 'orange': '#ff9800' };
             const axes = ['green', 'red', 'blue', 'orange'];
 
-            let U = colorMap[top];
-            let D = colorMap[top === 'white' ? 'yellow' : 'white'];
-            let F = colorMap[front];
-            let B = colorMap[front === 'green' ? 'blue' : (front === 'blue' ? 'green' : (front === 'red' ? 'orange' : 'red'))];
+            let U = colorMap[top]; let D = colorMap[top === 'white' ? 'yellow' : 'white'];
+            let F = colorMap[front]; let B = colorMap[front === 'green' ? 'blue' : (front === 'blue' ? 'green' : (front === 'red' ? 'orange' : 'red'))];
 
-            let fIdx = axes.indexOf(front);
-            let R, L;
-            if (top === 'white') {
-                R = colorMap[axes[(fIdx + 1) % 4]];
-                L = colorMap[axes[(fIdx + 3) % 4]];
-            } else {
-                R = colorMap[axes[(fIdx + 3) % 4]];
-                L = colorMap[axes[(fIdx + 1) % 4]];
-            }
-            return [U, R, F, D, L, B]; // 0=U, 1=R, 2=F, 3=D, 4=L, 5=B
+            let fIdx = axes.indexOf(front); let R, L;
+            if (top === 'white') { R = colorMap[axes[(fIdx + 1) % 4]]; L = colorMap[axes[(fIdx + 3) % 4]]; }
+            else { R = colorMap[axes[(fIdx + 3) % 4]]; L = colorMap[axes[(fIdx + 1) % 4]]; }
+            return [U, R, F, D, L, B];
         }
 
         function renderCube(state) {
@@ -1204,25 +1209,38 @@
         // --- 5. HARDWARE LOGIC (WEB SERIAL, DIAGNOSTICS, SPLITS) ---
 
         function updateDiagnosticsUI(l, r) {
-            let diagL = document.getElementById('diagLeft');
-            let diagR = document.getElementById('diagRight');
+            let diagL = document.getElementById('diagLeft'); let diagR = document.getElementById('diagRight');
             if(diagL) l ? diagL.classList.add('active') : diagL.classList.remove('active');
             if(diagR) r ? diagR.classList.add('active') : diagR.classList.remove('active');
+        }
+
+        function updateSplitsDisplay(forceEnd = false) {
+            let bldEl = document.getElementById('bldSubText');
+            bldEl.style.display = 'block';
+            let htmlStr = "";
+            for(let i=0; i<currentSplits.length; i++) {
+                let seg = i === 0 ? currentSplits[0] : currentSplits[i] - currentSplits[i-1];
+                htmlStr += `<span style="color:var(--accent-color); font-weight:bold;">${splitLabels[i]}:</span> ${formatTime(seg)} &nbsp;&nbsp;`;
+            }
+            if (forceEnd && currentSplits.length < 4) { // Finish the final segment if timer stopped
+                let prevTime = currentSplits.length > 0 ? currentSplits[currentSplits.length-1] : 0;
+                let finalSeg = finalTimeMs - prevTime;
+                let label = splitLabels[currentSplits.length] || 'End';
+                htmlStr += `<span style="color:var(--accent-color); font-weight:bold;">${label}:</span> ${formatTime(finalSeg)}`;
+            }
+            bldEl.innerHTML = htmlStr;
         }
 
         function handleSinglePadHit() {
             if (!document.getElementById('page-timer').classList.contains('active')) return;
             if (timerState === 'running' && currentTrainingMode === 'splits') {
                 let now = Date.now();
-                if (now - splitDebounceTime > 500) { // 500ms debounce to prevent accidental double-taps
+                if (now - splitDebounceTime > 500) {
                     splitDebounceTime = now;
                     let splitTimeMs = now - startTime;
                     if (currentSplits.length < 3) {
                         currentSplits.push(splitTimeMs);
-                        let bldEl = document.getElementById('bldSubText');
-                        bldEl.style.display = 'block';
-                        let phase = currentSplits.length === 1 ? 'Cross' : (currentSplits.length === 2 ? 'F2L' : 'OLL');
-                        bldEl.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">${phase} Split:</span> ${formatTime(splitTimeMs)}`;
+                        updateSplitsDisplay(false);
                     }
                 }
             }
@@ -1243,34 +1261,17 @@
 
                     for (let line of lines) {
                         line = line.trim();
-
-                        // Parse Diagnostic Heartbeat
                         if (line.startsWith("RAW:L")) {
-                            let lVal = line.charAt(5) === '1';
-                            let rVal = line.charAt(8) === '1';
+                            let lVal = line.charAt(5) === '1'; let rVal = line.charAt(8) === '1';
 
                             updateDiagnosticsUI(lVal, rVal);
+                            let bothNow = lVal && rVal; let oneNow = lVal || rVal;
 
-                            let bothNow = lVal && rVal;
-                            let oneNow = lVal || rVal;
-
-                            if (bothNow && !wasBothDown) {
-                                handlePadDown();
-                                wasBothDown = true;
-                            }
-                            else if (!bothNow && wasBothDown) {
-                                handlePadUp();
-                                wasBothDown = false;
-                            }
-
-                            // Trigger Splits Mode
-                            if (!bothNow && oneNow && timerState === 'running') {
-                                handleSinglePadHit();
-                            }
+                            if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
+                            else if (!bothNow && wasBothDown) { handlePadUp(); wasBothDown = false; }
+                            if (!bothNow && oneNow && timerState === 'running') { handleSinglePadHit(); }
                         }
-                        // Fallbacks for older hardware code
-                        else if (line === "DOWN") handlePadDown();
-                        else if (line === "UP") handlePadUp();
+                        else if (line === "DOWN") handlePadDown(); else if (line === "UP") handlePadUp();
                     }
                 }
             } catch (error) { serialPort = null; document.getElementById('btnConnectSerial').style.display = 'inline-block'; }
@@ -1282,20 +1283,12 @@
                 if ((e.key >= '0' && e.key <= '9') || e.key === '.' || e.key === ':') espInputBuffer += e.key; else if (e.key === 'Enter') { if (espInputBuffer.length > 0) { processESPTime(espInputBuffer); espInputBuffer = ""; } } else if (e.key === 'Backspace' || e.key === 'Escape') espInputBuffer = ""; return;
             }
 
-            // KEYBOARD DIAGNOSTIC MODE
             if (currentDevice === 'keyboard') {
-                if (e.code === 'ArrowLeft') simLeft = true;
-                if (e.code === 'ArrowRight') simRight = true;
-                if (e.code === 'Space') { simLeft = true; simRight = true; } // Space hits both pads
-
+                if (e.code === 'ArrowLeft') simLeft = true; if (e.code === 'ArrowRight') simRight = true; if (e.code === 'Space') { simLeft = true; simRight = true; }
                 updateDiagnosticsUI(simLeft, simRight);
-
-                let bothNow = simLeft && simRight;
-                let oneNow = simLeft || simRight;
-
+                let bothNow = simLeft && simRight; let oneNow = simLeft || simRight;
                 if (bothNow && !wasBothDown) { handlePadDown(); wasBothDown = true; }
                 if (!bothNow && oneNow && timerState === 'running') { handleSinglePadHit(); }
-
             } else {
                 if (e.code === 'Space' && !e.repeat) handlePadDown();
             }
@@ -1305,12 +1298,8 @@
             if (currentDevice === 'esp' && !appSettings.batterySaver) return;
 
             if (currentDevice === 'keyboard') {
-                if (e.code === 'ArrowLeft') simLeft = false;
-                if (e.code === 'ArrowRight') simRight = false;
-                if (e.code === 'Space') { simLeft = false; simRight = false; }
-
+                if (e.code === 'ArrowLeft') simLeft = false; if (e.code === 'ArrowRight') simRight = false; if (e.code === 'Space') { simLeft = false; simRight = false; }
                 updateDiagnosticsUI(simLeft, simRight);
-
                 let bothNow = simLeft && simRight;
                 if (!bothNow && wasBothDown) { handlePadUp(); wasBothDown = false; }
             } else {
@@ -1321,8 +1310,8 @@
         function processESPTime(timeStr) {
             let ms = 0; let parts = timeStr.split(':');
             if (parts.length === 2) { ms += parseInt(parts[0]) * 60000; ms += parseFloat(parts[1]) * 1000; } else ms += parseFloat(timeStr) * 1000;
-            finalTimeMs = Math.round(ms); document.getElementById('mainTimerText').innerText = formatTime(finalTimeMs); saveSolve('OK');
-            setTimeout(() => { if (currentDevice === 'esp' && !appSettings.batterySaver && timerState === 'idle') document.getElementById('mainTimerText').innerText = "Board Active"; }, 2000);
+            finalTimeMs = Math.round(ms); setMainTimer(formatTime(finalTimeMs)); saveSolve('OK');
+            setTimeout(() => { if (currentDevice === 'esp' && !appSettings.batterySaver && timerState === 'idle') setMainTimer("Board Active"); }, 2000);
         }
 
         function handlePadDown() {
@@ -1331,23 +1320,25 @@
             if(currentTrainingMode === 'bld') {
                 if(timerState === 'idle' || timerState === 'stopped') {
                     document.getElementById('penalty-controls').style.display = 'none'; timerState = 'starting_hold'; spaceHoldStart = Date.now();
-                    document.getElementById('mainTimerText').style.color = '#d32f2f';
-                    holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)'; document.getElementById('mainTimerText').innerText = formatTime(0); setFocusMode(true); clearInterval(holdInterval); } }, 50);
+                    setMainTimer(formatTime(0), '#d32f2f');
+                    holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; setMainTimer(formatTime(0), 'var(--accent-color)'); setFocusMode(true); clearInterval(holdInterval); } }, 50);
                 } else if(timerState === 'bld_memo') { bldMemoTime = Date.now() - startTime; timerState = 'bld_exec_pressed'; } else if(timerState === 'bld_exec') { stopTimer(); } return;
             }
             if (timerState === 'idle' || timerState === 'stopped') {
                 document.getElementById('penalty-controls').style.display = 'none';
                 if (appSettings.inspectionEnabled) {
-                    timerState = 'inspecting_starting'; setFocusMode(true); document.getElementById('mainTimerText').style.color = '#ff9800';
-                    document.getElementById('mainTimerText').innerText = appSettings.inspectionTime.toString();
+                    timerState = 'inspecting_starting'; setFocusMode(true);
+                    setMainTimer(appSettings.inspectionTime.toString(), '#ff9800');
                 }
                 else {
-                    timerState = 'starting_hold'; activeInspectionPenalty = 'OK'; spaceHoldStart = Date.now(); document.getElementById('mainTimerText').style.color = '#d32f2f';
-                    holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)'; document.getElementById('mainTimerText').innerText = formatTime(0); setFocusMode(true); clearInterval(holdInterval); } }, 50);
+                    timerState = 'starting_hold'; activeInspectionPenalty = 'OK'; spaceHoldStart = Date.now();
+                    setMainTimer(formatTime(0), '#d32f2f');
+                    holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; setMainTimer(formatTime(0), 'var(--accent-color)'); setFocusMode(true); clearInterval(holdInterval); } }, 50);
                 }
             } else if (timerState === 'inspecting') {
-                timerState = 'inspecting_holding'; spaceHoldStart = Date.now(); document.getElementById('mainTimerText').style.color = '#d32f2f';
-                holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; document.getElementById('mainTimerText').style.color = 'var(--accent-color)'; document.getElementById('mainTimerText').innerText = formatTime(0); setFocusMode(true); clearInterval(holdInterval); } }, 50);
+                timerState = 'inspecting_holding'; spaceHoldStart = Date.now();
+                setMainTimer(document.getElementById('mainTimerText').innerText, '#d32f2f');
+                holdInterval = setInterval(() => { if (Date.now() - spaceHoldStart > (appSettings.holdDelay * 1000)) { timerState = 'ready'; setMainTimer(formatTime(0), 'var(--accent-color)'); setFocusMode(true); clearInterval(holdInterval); } }, 50);
             } else if (timerState === 'running') { stopTimer(); }
         }
 
@@ -1355,22 +1346,21 @@
             if (!document.getElementById('page-timer').classList.contains('active')) return;
 
             if(currentTrainingMode === 'bld') {
-                if(timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; } else if(timerState === 'ready') { clearInterval(holdInterval); startTimer(); } else if(timerState === 'bld_exec_pressed') { timerState = 'bld_exec'; } return;
+                if(timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); setMainTimer(formatTime(0), 'var(--timer-color)'); } else if(timerState === 'ready') { clearInterval(holdInterval); startTimer(); } else if(timerState === 'bld_exec_pressed') { timerState = 'bld_exec'; } return;
             }
             if (timerState === 'inspecting_starting') { timerState = 'inspecting'; startInspection(); }
-            else if (timerState === 'inspecting_holding') { clearInterval(holdInterval); timerState = 'inspecting'; document.getElementById('mainTimerText').style.color = '#ff9800'; }
-            else if (timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; }
+            else if (timerState === 'inspecting_holding') { clearInterval(holdInterval); timerState = 'inspecting'; setMainTimer(document.getElementById('mainTimerText').innerText, '#ff9800'); }
+            else if (timerState === 'starting_hold') { clearInterval(holdInterval); timerState = 'idle'; setFocusMode(false); setMainTimer(formatTime(0), 'var(--timer-color)'); }
             else if (timerState === 'ready') { clearInterval(holdInterval); clearInterval(inspectionInterval); startTimer(); }
         }
 
         function startInspection() {
-            inspectStartTime = Date.now(); activeInspectionPenalty = 'OK'; document.getElementById('mainTimerText').style.color = '#ff9800';
+            inspectStartTime = Date.now(); activeInspectionPenalty = 'OK';
+            setMainTimer(appSettings.inspectionTime.toString(), '#ff9800');
             alerted8 = false; alerted12 = false;
 
             inspectionInterval = setInterval(() => {
-                let elapsedMs = Date.now() - inspectStartTime;
-                let elapsedSec = Math.floor(elapsedMs / 1000);
-                let remaining = appSettings.inspectionTime - elapsedSec;
+                let elapsedMs = Date.now() - inspectStartTime; let elapsedSec = Math.floor(elapsedMs / 1000); let remaining = appSettings.inspectionTime - elapsedSec;
 
                 if (appSettings.voiceAlerts) {
                     if (elapsedSec === 8 && !alerted8) { speakText("Eight seconds"); alerted8 = true; }
@@ -1380,38 +1370,31 @@
                 if (remaining <= 0 && remaining > -appSettings.inspGrace) activeInspectionPenalty = '+2'; else if (remaining <= -appSettings.inspGrace) activeInspectionPenalty = 'DNF';
                 if (timerState !== 'ready') {
                     let displayStr = "DNF"; if (remaining > 0) displayStr = remaining; else if (remaining <= 0 && remaining > -appSettings.inspGrace) displayStr = "+2";
-                    document.getElementById('mainTimerText').innerText = displayStr;
-                    if (timerState === 'inspecting') { if (remaining > 0) document.getElementById('mainTimerText').style.color = '#ff9800'; else document.getElementById('mainTimerText').style.color = '#d32f2f'; }
+                    setMainTimer(displayStr.toString(), remaining > 0 ? '#ff9800' : '#d32f2f');
                 }
             }, 100);
         }
 
         function startTimer() {
-            if(currentTrainingMode === 'bld') { timerState = 'bld_memo'; document.getElementById('mainTimerText').style.color = '#2196f3'; }
-            else { timerState = 'running'; document.getElementById('mainTimerText').style.color = 'var(--timer-color)'; }
+            if(currentTrainingMode === 'bld') { timerState = 'bld_memo'; setMainTimer(formatTime(0), '#2196f3'); }
+            else { timerState = 'running'; setMainTimer(formatTime(0), 'var(--timer-color)'); }
             document.getElementById('bldSubText').style.display = 'none';
 
-            currentSplits = []; // Reset Splits
-            splitDebounceTime = 0;
-            startTime = Date.now();
+            currentSplits = []; splitDebounceTime = 0; startTime = Date.now();
 
             timerInterval = setInterval(() => {
-                document.getElementById('mainTimerText').innerText = formatTime(Date.now() - startTime);
-                if(timerState === 'bld_exec' || timerState === 'bld_exec_pressed') { document.getElementById('mainTimerText').style.color = '#f44336'; }
+                let c = 'var(--timer-color)';
+                if(timerState === 'bld_exec' || timerState === 'bld_exec_pressed') c = '#f44336';
+                setMainTimer(formatTime(Date.now() - startTime), c);
             }, appSettings.timerUpdateRate);
         }
 
         function stopTimer() {
-            timerState = 'stopped';
-            clearInterval(timerInterval);
-            finalTimeMs = Date.now() - startTime;
-            setFocusMode(false);
+            timerState = 'stopped'; clearInterval(timerInterval); finalTimeMs = Date.now() - startTime; setFocusMode(false);
 
-            // Clean up accidental split (if one hand hit pad a fraction of a second before the other to stop)
+            // Clean up accidental split
             if (currentTrainingMode === 'splits' && currentSplits.length > 0) {
-                if (finalTimeMs - currentSplits[currentSplits.length - 1] < 300) {
-                    currentSplits.pop();
-                }
+                if (finalTimeMs - currentSplits[currentSplits.length - 1] < 300) { currentSplits.pop(); }
             }
 
             saveSolve(activeInspectionPenalty);
@@ -1425,10 +1408,7 @@
             let oldPbSingle = globalPbSingle; let oldPbAo5 = globalPbAo5;
 
             getActiveSession().solves.push({
-                timeMs: finalTimeMs,
-                penalty: autoPenalty,
-                scramble: activeScramble,
-                mode: currentTrainingMode,
+                timeMs: finalTimeMs, penalty: autoPenalty, scramble: activeScramble, mode: currentTrainingMode,
                 memoMs: (currentTrainingMode === 'bld' ? bldMemoTime : undefined),
                 splits: (currentTrainingMode === 'splits' ? [...currentSplits] : undefined)
             });
@@ -1440,11 +1420,9 @@
                 let bldEl = document.getElementById('bldSubText'); bldEl.style.display = 'block';
                 bldEl.innerHTML = `Memo: ${formatTime(bldMemoTime)} | Exec: ${formatTime(finalTimeMs - bldMemoTime)}`;
             } else if (currentTrainingMode === 'splits') {
-                let bldEl = document.getElementById('bldSubText'); bldEl.style.display = 'block';
-                bldEl.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">Final PLL Split Recorded.</span>`;
+                updateSplitsDisplay(true); // Draw final breakdown
             }
 
-            // Milestone Checks (Streaks & PBs)
             if (globalPbSingle < oldPbSingle && globalPbSingle !== Infinity) showToast("🏆 New Personal Best Single! " + formatTime(globalPbSingle * 1000));
             if (globalPbAo5 < oldPbAo5 && globalPbAo5 !== Infinity) showToast("🔥 New PB Ao5! " + formatTime(globalPbAo5 * 1000));
 
@@ -1460,10 +1438,10 @@
         }
 
         function applyVisualPenalty(type, rawTimeMs) {
-            let displayStr = formatTime(rawTimeMs); document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
-            if (type === 'DNF') { displayStr = 'DNF'; document.getElementById('mainTimerText').style.color = '#d32f2f'; }
-            else if (type === '+2') { displayStr = formatTime(rawTimeMs + appSettings.plusPenalty) + '+'; document.getElementById('mainTimerText').style.color = '#ffeb3b'; }
-            document.getElementById('mainTimerText').innerText = displayStr;
+            let displayStr = formatTime(rawTimeMs); let color = 'var(--timer-color)';
+            if (type === 'DNF') { displayStr = 'DNF'; color = '#d32f2f'; }
+            else if (type === '+2') { displayStr = formatTime(rawTimeMs + appSettings.plusPenalty) + '+'; color = '#ffeb3b'; }
+            setMainTimer(displayStr, color);
         }
 
         function deleteLastSolve() {
@@ -1476,17 +1454,12 @@
             let newFSolves = getFilteredSolves();
             if (newFSolves.length > 0) {
                 let newLast = newFSolves[newFSolves.length - 1];
-                finalTimeMs = newLast.timeMs;
-                activeInspectionPenalty = newLast.penalty;
+                finalTimeMs = newLast.timeMs; activeInspectionPenalty = newLast.penalty;
                 applyVisualPenalty(newLast.penalty, newLast.timeMs);
-                document.getElementById('penalty-controls').style.display = 'flex';
-                timerState = 'stopped';
+                document.getElementById('penalty-controls').style.display = 'flex'; timerState = 'stopped';
             } else {
                 document.getElementById('penalty-controls').style.display = 'none';
-                document.getElementById('mainTimerText').innerText = formatTime(0);
-                document.getElementById('mainTimerText').style.color = 'var(--timer-color)';
-                finalTimeMs = 0;
-                timerState = 'idle';
+                setMainTimer(formatTime(0), 'var(--timer-color)'); finalTimeMs = 0; timerState = 'idle';
             }
 
             document.getElementById('bldSubText').style.display = 'none'; setFocusMode(false);
@@ -1565,26 +1538,18 @@
         }
 
         function updateAnalyticsUI() {
-            // Update the top 4 stat boxes
-            let allSolvesCount = 0;
-            let totalTimeCubingMs = 0;
-            sessions.forEach(s => {
-                allSolvesCount += s.solves.length;
-                s.solves.forEach(solve => totalTimeCubingMs += solve.timeMs);
-            });
+            let allSolvesCount = 0; let totalTimeCubingMs = 0;
+            sessions.forEach(s => { allSolvesCount += s.solves.length; s.solves.forEach(solve => totalTimeCubingMs += solve.timeMs); });
             document.getElementById('anaTotalSolves').innerText = allSolvesCount;
 
-            let hours = Math.floor(totalTimeCubingMs / 3600000);
-            let mins = Math.floor((totalTimeCubingMs % 3600000) / 60000);
-            let secs = Math.floor((totalTimeCubingMs % 60000) / 1000);
+            let hours = Math.floor(totalTimeCubingMs / 3600000); let mins = Math.floor((totalTimeCubingMs % 3600000) / 60000); let secs = Math.floor((totalTimeCubingMs % 60000) / 1000);
             document.getElementById('anaTotalTime').innerText = `${hours}h ${mins}m ${secs}s`;
 
             let fSolves = getFilteredSolves();
             let validTimes = fSolves.filter(s => s.penalty !== 'DNF').map(s => (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) / 1000);
 
             if (validTimes.length > 0) {
-                let sorted = [...validTimes].sort((a, b) => a - b);
-                let mid = Math.floor(sorted.length / 2);
+                let sorted = [...validTimes].sort((a, b) => a - b); let mid = Math.floor(sorted.length / 2);
                 let median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
                 document.getElementById('anaMedian').innerText = median.toFixed(appSettings.timerDecimals) + 's';
 
@@ -1593,17 +1558,13 @@
                 let stdDev = Math.sqrt(variance);
                 document.getElementById('anaStdDev').innerText = stdDev.toFixed(appSettings.timerDecimals) + 's';
             } else {
-                document.getElementById('anaMedian').innerText = '--';
-                document.getElementById('anaStdDev').innerText = '--';
+                document.getElementById('anaMedian').innerText = '--'; document.getElementById('anaStdDev').innerText = '--';
             }
-
 
             if(typeof Chart === 'undefined') return;
 
             // Chart 1: Polynomial Trendline
-            let labels = validTimes.map((_, i) => i + 1);
-            let trendData = calculatePolynomialTrend(validTimes);
-
+            let labels = validTimes.map((_, i) => i + 1); let trendData = calculatePolynomialTrend(validTimes);
             let ctxTrend = document.getElementById('trendChart').getContext('2d');
             if(window.trendChartInstance) window.trendChartInstance.destroy();
             window.trendChartInstance = new Chart(ctxTrend, {
@@ -1616,10 +1577,8 @@
             });
 
             // Chart 2: Distribution Histogram
-            let buckets = {};
-            validTimes.forEach(t => { let b = Math.floor(t); buckets[b] = (buckets[b] || 0) + 1; });
-            let bLabels = Object.keys(buckets).map(Number).sort((a,b)=>a-b);
-            let bData = bLabels.map(b => buckets[b]);
+            let buckets = {}; validTimes.forEach(t => { let b = Math.floor(t); buckets[b] = (buckets[b] || 0) + 1; });
+            let bLabels = Object.keys(buckets).map(Number).sort((a,b)=>a-b); let bData = bLabels.map(b => buckets[b]);
 
             let ctxDist = document.getElementById('distChart').getContext('2d');
             if(window.distChartInstance) window.distChartInstance.destroy();
@@ -1632,7 +1591,6 @@
             // Chart 3: NEW Splits Stacked Bar
             let ctxSplits = document.getElementById('splitsChart');
             if (ctxSplits) {
-                // Filter only solves with exactly 3 splits (CFOP has 3 splits + final stop)
                 let splitSolves = fSolves.filter(s => s.mode === 'splits' && s.splits && s.splits.length === 3 && s.penalty !== 'DNF');
                 let splitsContainer = document.getElementById('splitsChartContainer');
 
@@ -1658,15 +1616,12 @@
                             ]
                         },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
+                            responsive: true, maintainAspectRatio: false,
                             plugins: { tooltip: { mode: 'index', intersect: false }, legend: { labels: { color: '#aaa' } } },
                             scales: { x: { stacked: true, ticks:{color:'#888'} }, y: { stacked: true, ticks:{color:'#888'} } }
                         }
                     });
-                } else {
-                    splitsContainer.style.display = 'none';
-                }
+                } else { splitsContainer.style.display = 'none'; }
             }
 
 
@@ -1674,28 +1629,18 @@
             let projAo5Str = "--";
             if (globalPbAo5 !== Infinity && fSolves.length >= 4) {
                 let last4 = fSolves.slice(-4).map(s => s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) / 1000);
-                last4.sort((a,b) => a-b);
-                let targetSec = globalPbAo5;
-                let reqSec = (3 * targetSec) - last4[1] - last4[2];
-                if (reqSec <= 0) projAo5Str = "Impossible in current slot";
-                else if (last4[1] + last4[2] + last4[3] <= 3 * targetSec) projAo5Str = "Any valid time secures PB!";
-                else projAo5Str = `Sub ${reqSec.toFixed(appSettings.timerDecimals)}`;
+                last4.sort((a,b) => a-b); let targetSec = globalPbAo5; let reqSec = (3 * targetSec) - last4[1] - last4[2];
+                if (reqSec <= 0) projAo5Str = "Impossible in current slot"; else if (last4[1] + last4[2] + last4[3] <= 3 * targetSec) projAo5Str = "Any valid time secures PB!"; else projAo5Str = `Sub ${reqSec.toFixed(appSettings.timerDecimals)}`;
             }
             document.getElementById('projAo5').innerHTML = `<strong style="color:var(--accent-color)">${projAo5Str}</strong>`;
 
             let projAo12Str = "--";
             if (globalPbAo12 !== Infinity && fSolves.length >= 11) {
                 let last11 = fSolves.slice(-11).map(s => s.penalty === 'DNF' ? Infinity : (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) / 1000);
-                last11.sort((a,b) => a-b);
-                let sumMiddle9 = 0; for(let i=1; i<=9; i++) sumMiddle9 += last11[i];
-                let targetSec = globalPbAo12;
-                let reqSec = (10 * targetSec) - sumMiddle9;
+                last11.sort((a,b) => a-b); let sumMiddle9 = 0; for(let i=1; i<=9; i++) sumMiddle9 += last11[i];
+                let targetSec = globalPbAo12; let reqSec = (10 * targetSec) - sumMiddle9;
                 if (reqSec <= 0) projAo12Str = "Impossible in current slot";
-                else {
-                    let sumWorstCase = 0; for(let i=1; i<=10; i++) sumWorstCase += last11[i];
-                    if (sumWorstCase <= 10 * targetSec) projAo12Str = "Any valid time secures PB!";
-                    else projAo12Str = `Sub ${reqSec.toFixed(appSettings.timerDecimals)}`;
-                }
+                else { let sumWorstCase = 0; for(let i=1; i<=10; i++) sumWorstCase += last11[i]; if (sumWorstCase <= 10 * targetSec) projAo12Str = "Any valid time secures PB!"; else projAo12Str = `Sub ${reqSec.toFixed(appSettings.timerDecimals)}`; }
             }
             document.getElementById('projAo12').innerHTML = `<strong style="color:var(--accent-color)">${projAo12Str}</strong>`;
         }
@@ -1731,10 +1676,7 @@
             sessions.forEach(s => {
                 if (s.solves.length === 0) return;
                 let sKey = "session" + sIndex; cstExport.properties.sessionData[sIndex.toString()] = { name: s.name, opt: {} };
-                cstExport[sKey] = s.solves.map(solve => {
-                    let pen = 0; if (solve.penalty === '+2') pen = appSettings.plusPenalty; else if (solve.penalty === 'DNF') pen = -1;
-                    return [[pen, solve.timeMs], solve.scramble, "", Math.floor(Date.now() / 1000)];
-                });
+                cstExport[sKey] = s.solves.map(solve => { let pen = 0; if (solve.penalty === '+2') pen = appSettings.plusPenalty; else if (solve.penalty === 'DNF') pen = -1; return [[pen, solve.timeMs], solve.scramble, "", Math.floor(Date.now() / 1000)]; });
                 sIndex++;
             });
             cstExport.properties.sessionData = JSON.stringify(cstExport.properties.sessionData);
@@ -1744,31 +1686,23 @@
         }
 
         function importData(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const fileName = file.name.toLowerCase(); const reader = new FileReader();
+            const file = event.target.files[0]; if (!file) return; const fileName = file.name.toLowerCase(); const reader = new FileReader();
             reader.onload = function(e) {
                 const text = e.target.result;
                 if (fileName.endsWith('.txt')) {
                     try {
                         const cstData = JSON.parse(text); let newSessions = []; let sessionNames = {};
-                        if (cstData.properties && cstData.properties.sessionData) {
-                            try { const parsedNames = JSON.parse(cstData.properties.sessionData); for (let key in parsedNames) { sessionNames[`session${key}`] = parsedNames[key].name; } } catch(e) {}
-                        }
+                        if (cstData.properties && cstData.properties.sessionData) { try { const parsedNames = JSON.parse(cstData.properties.sessionData); for (let key in parsedNames) { sessionNames[`session${key}`] = parsedNames[key].name; } } catch(e) {} }
                         let idCounter = Date.now();
                         for (let key in cstData) {
                             if (key.startsWith('session') && Array.isArray(cstData[key])) {
                                 if (cstData[key].length === 0) continue;
                                 let sName = sessionNames[key] || `csTimer ${key}`; let archSolves = [];
-                                cstData[key].forEach(solve => {
-                                    let penState = 'OK'; if (solve[0][0] === -1) penState = 'DNF'; else if (solve[0][0] > 0) penState = '+2';
-                                    archSolves.push({ timeMs: solve[0][1], penalty: penState, scramble: solve[1] || "", mode: 'standard' });
-                                });
+                                cstData[key].forEach(solve => { let penState = 'OK'; if (solve[0][0] === -1) penState = 'DNF'; else if (solve[0][0] > 0) penState = '+2'; archSolves.push({ timeMs: solve[0][1], penalty: penState, scramble: solve[1] || "", mode: 'standard' }); });
                                 newSessions.push({ id: idCounter++, name: sName, solves: archSolves, hwProfile: 'performance' });
                             }
                         }
-                        if (newSessions.length > 0) {
-                            if(confirm("Importing a csTimer backup will overwrite all current sessions. Continue?")) { sessions = newSessions; activeSessionId = sessions[0].id; persistDatabase(); updateSessionUI(); updateStatsUI(); alert(`Successfully imported ${sessions.length} sessions from csTimer!`); }
-                        } else alert("No valid sessions found.");
+                        if (newSessions.length > 0) { if(confirm("Importing a csTimer backup will overwrite all current sessions. Continue?")) { sessions = newSessions; activeSessionId = sessions[0].id; persistDatabase(); updateSessionUI(); updateStatsUI(); alert(`Successfully imported ${sessions.length} sessions from csTimer!`); } } else alert("No valid sessions found.");
                     } catch(err) { alert("Invalid csTimer .txt format."); }
                 } else if (fileName.endsWith('.csv')) {
                     const rows = text.split('\n'); const headerCols = rows[0].split(','); const isAllSessionsFormat = headerCols[0].trim() === "Session";
@@ -1776,19 +1710,12 @@
                         sessions = [];
                         for (let i = 1; i < rows.length; i++) {
                             const row = rows[i].trim(); if (!row) continue; const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                            if (cols.length >= 5) {
-                                let sName = cols[0].replace(/(^"|"$)/g, ''); let existingSession = sessions.find(s => s.name === sName);
-                                if (!existingSession) { existingSession = { id: Date.now() + i, name: sName, solves: [], hwProfile: 'performance' }; sessions.push(existingSession); }
-                                existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, ''), mode:'standard' });
-                            }
+                            if (cols.length >= 5) { let sName = cols[0].replace(/(^"|"$)/g, ''); let existingSession = sessions.find(s => s.name === sName); if (!existingSession) { existingSession = { id: Date.now() + i, name: sName, solves: [], hwProfile: 'performance' }; sessions.push(existingSession); } existingSession.solves.push({ timeMs: parseInt(cols[2]), penalty: cols[3], scramble: cols[4].replace(/(^"|"$)/g, ''), mode:'standard' }); }
                         }
                         activeSessionId = sessions[0].id;
                     } else {
                         let importedSolves = [];
-                        for (let i = 1; i < rows.length; i++) {
-                            const row = rows[i].trim(); if (!row) continue; const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                            if (cols.length >= 4) { importedSolves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, ''), mode:'standard' }); }
-                        }
+                        for (let i = 1; i < rows.length; i++) { const row = rows[i].trim(); if (!row) continue; const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); if (cols.length >= 4) { importedSolves.push({ timeMs: parseInt(cols[1]), penalty: cols[2], scramble: cols[3].replace(/(^"|"$)/g, ''), mode:'standard' }); } }
                         getActiveSession().solves = importedSolves;
                     }
                     persistDatabase(); updateSessionUI(); updateStatsUI(); alert(`Successfully imported CSV!`);
@@ -1824,24 +1751,13 @@
 
         // --- 10. SCRAMBLE ENGINE ---
         function updateScrambleDisplay() {
-            let fSolves = getFilteredSolves();
-            let maxIndex = fSolves.length;
-            let displayStr = ""; let hintStr = "";
-
-            if (scrambleViewIndex < maxIndex) {
-                displayStr = fSolves[scrambleViewIndex].scramble;
-                hintStr = `Viewing Solve #${scrambleViewIndex + 1}`;
-            } else {
-                displayStr = pendingScramble;
-                hintStr = "Click to generate new scramble";
-            }
+            let fSolves = getFilteredSolves(); let maxIndex = fSolves.length; let displayStr = ""; let hintStr = "";
+            if (scrambleViewIndex < maxIndex) { displayStr = fSolves[scrambleViewIndex].scramble; hintStr = `Viewing Solve #${scrambleViewIndex + 1}`; }
+            else { displayStr = pendingScramble; hintStr = "Click to generate new scramble"; }
 
             document.getElementById('scrambleText').innerText = displayStr;
-            let hintEl = document.getElementById('scrambleHint');
-            if(hintEl) hintEl.innerText = hintStr;
-
-            let state = applyScrambleToState(displayStr);
-            renderCube(state);
+            let hintEl = document.getElementById('scrambleHint'); if(hintEl) hintEl.innerText = hintStr;
+            renderCube(applyScrambleToState(displayStr));
         }
 
         function generateScramble(e = null) {
@@ -1853,9 +1769,7 @@
                 let currentFace; do { currentFace = Math.floor(Math.random() * faces.length); } while (currentFace === lastFace);
                 lastFace = currentFace; scramble.push(faces[currentFace] + modifiers[Math.floor(Math.random() * modifiers.length)]);
             }
-            pendingScramble = scramble.join('  ');
-            scrambleViewIndex = getFilteredSolves().length;
-            updateScrambleDisplay();
+            pendingScramble = scramble.join('  '); scrambleViewIndex = getFilteredSolves().length; updateScrambleDisplay();
         }
 
         function prevScramble(e) { if(e) e.stopPropagation(); if (scrambleViewIndex > 0) { scrambleViewIndex--; updateScrambleDisplay(); } }
@@ -1870,145 +1784,68 @@
         }
 
         function updateOledPreview() {
-            let val = document.getElementById('selOledLine2').value;
-            let text = "";
-            if (val === 'ao5') text = "Ao5: 14.502";
-            else if (val === 'best') text = "Best:  9.841";
-            else if (val === 'scramble') text = "R U R' U' ...";
-            else text = "";
+            let val = document.getElementById('selOledLine2').value; let text = "";
+            if (val === 'ao5') text = "Ao5: 14.502"; else if (val === 'best') text = "Best:  9.841"; else if (val === 'scramble') text = "R U R' U' ..."; else text = "";
             document.getElementById('oledPreviewLine2').innerText = text;
         }
 
         function getOledCoords(e) {
-            let rect = oledCanvas.getBoundingClientRect();
-            let scaleX = oledCanvas.width / rect.width;
-            let scaleY = oledCanvas.height / rect.height;
-            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: (clientX - rect.left) * scaleX,
-                y: (clientY - rect.top) * scaleY
-            };
+            let rect = oledCanvas.getBoundingClientRect(); let scaleX = oledCanvas.width / rect.width; let scaleY = oledCanvas.height / rect.height;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX; let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
         }
 
         function drawLine(e, isStart) {
             let {x, y} = getOledCoords(e);
+            oledCtx.strokeStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000'; oledCtx.fillStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000';
+            oledCtx.lineWidth = 2; oledCtx.lineCap = 'round'; oledCtx.lineJoin = 'round';
 
-            oledCtx.strokeStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000';
-            oledCtx.fillStyle = drawModeOled === 1 ? '#FFFFFF' : '#000000';
-
-            // This disables "perfect pixel" and gives a smooth vector stroke
-            oledCtx.lineWidth = 2;
-            oledCtx.lineCap = 'round';
-            oledCtx.lineJoin = 'round';
-
-            if (isStart) {
-                // If it's a single click/tap, draw a perfect circle
-                oledCtx.beginPath();
-                oledCtx.arc(x, y, oledCtx.lineWidth / 2, 0, Math.PI * 2);
-                oledCtx.fill();
-            } else {
-                // Connect the last point to the new point smoothly
-                oledCtx.beginPath();
-                oledCtx.moveTo(lastDrawX, lastDrawY);
-                oledCtx.lineTo(x, y);
-                oledCtx.stroke();
-            }
-
-            lastDrawX = x;
-            lastDrawY = y;
+            if (isStart) { oledCtx.beginPath(); oledCtx.arc(x, y, oledCtx.lineWidth / 2, 0, Math.PI * 2); oledCtx.fill(); }
+            else { oledCtx.beginPath(); oledCtx.moveTo(lastDrawX, lastDrawY); oledCtx.lineTo(x, y); oledCtx.stroke(); }
+            lastDrawX = x; lastDrawY = y;
         }
 
         function initOledCanvas() {
-            if(oledCanvasInitialized) return;
-            oledCanvas = document.getElementById('bootLogoCanvas');
-            oledCtx = oledCanvas.getContext('2d', {willReadFrequently: true});
-            oledCtx.fillStyle = '#000000';
-            oledCtx.fillRect(0, 0, 128, 32);
+            if(oledCanvasInitialized) return; oledCanvas = document.getElementById('bootLogoCanvas'); oledCtx = oledCanvas.getContext('2d', {willReadFrequently: true});
+            oledCtx.fillStyle = '#000000'; oledCtx.fillRect(0, 0, 128, 32);
 
-            if (appSettings.oledBootLogoData) {
-                let img = new Image();
-                img.onload = () => { oledCtx.drawImage(img, 0, 0); };
-                img.src = appSettings.oledBootLogoData;
-            }
+            if (appSettings.oledBootLogoData) { let img = new Image(); img.onload = () => { oledCtx.drawImage(img, 0, 0); }; img.src = appSettings.oledBootLogoData; }
 
-            // Mouse Events
-            oledCanvas.addEventListener('mousedown', (e) => {
-                isDrawingOled = true;
-                drawModeOled = e.button === 2 ? 0 : 1;
-                drawLine(e, true);
-            });
-            oledCanvas.addEventListener('mousemove', (e) => {
-                if(isDrawingOled) drawLine(e, false);
-            });
-            window.addEventListener('mouseup', () => {
-                if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); }
-            });
+            oledCanvas.addEventListener('mousedown', (e) => { isDrawingOled = true; drawModeOled = e.button === 2 ? 0 : 1; drawLine(e, true); });
+            oledCanvas.addEventListener('mousemove', (e) => { if(isDrawingOled) drawLine(e, false); });
+            window.addEventListener('mouseup', () => { if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); } });
 
-            // Touch Events (Mobile)
-            oledCanvas.addEventListener('touchstart', (e) => {
-                isDrawingOled = true;
-                drawModeOled = 1;
-                drawLine(e, true);
-            }, {passive: false});
-            oledCanvas.addEventListener('touchmove', (e) => {
-                if(isDrawingOled) { e.preventDefault(); drawLine(e, false); }
-            }, {passive: false});
-            window.addEventListener('touchend', () => {
-                if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); }
-            });
+            oledCanvas.addEventListener('touchstart', (e) => { isDrawingOled = true; drawModeOled = 1; drawLine(e, true); }, {passive: false});
+            oledCanvas.addEventListener('touchmove', (e) => { if(isDrawingOled) { e.preventDefault(); drawLine(e, false); } }, {passive: false});
+            window.addEventListener('touchend', () => { if(isDrawingOled) { isDrawingOled = false; appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); } });
 
             oledCanvasInitialized = true;
         }
 
-        function clearOledCanvas() {
-            oledCtx.fillStyle = '#000000';
-            oledCtx.fillRect(0, 0, 128, 32);
-            appSettings.oledBootLogoData = oledCanvas.toDataURL();
-            debouncedSave();
-        }
+        function clearOledCanvas() { oledCtx.fillStyle = '#000000'; oledCtx.fillRect(0, 0, 128, 32); appSettings.oledBootLogoData = oledCanvas.toDataURL(); debouncedSave(); }
 
         function getOLEDHex() {
-            let imgData = oledCtx.getImageData(0, 0, 128, 32).data;
-            let hexStr = "";
+            let imgData = oledCtx.getImageData(0, 0, 128, 32).data; let hexStr = "";
             for(let page=0; page<4; page++) {
                 for(let x=0; x<128; x++) {
                     let byte = 0;
-                    for(let b=0; b<8; b++) {
-                        let y = page*8 + b;
-                        let idx = (y*128 + x) * 4;
-                        if(imgData[idx] > 128) byte |= (1 << b);
-                    }
-                    let h = byte.toString(16).toUpperCase();
-                    if(h.length < 2) h = "0" + h;
-                    hexStr += h;
+                    for(let b=0; b<8; b++) { let y = page*8 + b; let idx = (y*128 + x) * 4; if(imgData[idx] > 128) byte |= (1 << b); }
+                    let h = byte.toString(16).toUpperCase(); if(h.length < 2) h = "0" + h; hexStr += h;
                 }
             }
             return hexStr;
         }
 
         async function syncOledToBoard() {
-            if (!serialPort || !serialPort.writable) {
-                showToast("🔴 Not connected to board!");
-                return;
-            }
-
-            let line2Val = document.getElementById('selOledLine2').value;
-            let configCmd = `CFG:OLED:LINE2:${line2Val.toUpperCase()}\n`;
-
-            let hexData = getOLEDHex();
-            let logoCmd = `CFG:LOGO:${hexData}\n`;
+            if (!serialPort || !serialPort.writable) { showToast("🔴 Not connected to board!"); return; }
+            let configCmd = `CFG:OLED:LINE2:${document.getElementById('selOledLine2').value.toUpperCase()}\n`;
+            let logoCmd = `CFG:LOGO:${getOLEDHex()}\n`;
 
             try {
                 const writer = serialPort.writable.getWriter();
-                await writer.write(new TextEncoder().encode(configCmd));
-                await writer.write(new TextEncoder().encode(logoCmd));
-                writer.releaseLock();
+                await writer.write(new TextEncoder().encode(configCmd)); await writer.write(new TextEncoder().encode(logoCmd)); writer.releaseLock();
                 showToast("⚙️ Display & Boot Logo Synced!");
-            } catch (e) {
-                console.error("Failed to sync OLED config", e);
-                showToast("🔴 Sync Failed!");
-            }
+            } catch (e) { showToast("🔴 Sync Failed!"); }
         }
 
     </script>
