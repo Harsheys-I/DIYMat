@@ -419,6 +419,12 @@
                     <h3 style="margin-top:0; color: var(--accent-color);">CFOP Phase Splits Analysis</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px;">Breakdown of time spent per phase (Requires "Splits Mode" solves with exactly 3 taps before stopping).</p>
                     <div class="chart-container"><canvas id="splitsChart"></canvas></div>
+                    
+                    <div id="eliteRatioContainer" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--ui-border); display: none;">
+                        <h4 style="margin: 0 0 15px 0; color: var(--text-color);">Elite Ratio Comparison</h4>
+                        <div id="ratioGrid" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                        <p id="ratioAdvice" style="margin-top: 15px; padding: 12px; background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; border-radius: 4px; font-size: 1.05rem; line-height: 1.5; color: var(--text-color);"></p>
+                    </div>
                 </div>
 
                 <div style="background: var(--ui-panel-bg); padding: 20px; border-radius: var(--ui-radius); border: 1px solid var(--ui-border); margin-top: 20px;">
@@ -673,7 +679,7 @@
 
                 </div>
 
-                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.56 (Splits Fixed)</p>
+                <p style="text-align: center; color: var(--text-muted); margin-top: 30px; font-size: 0.9rem;">ArchSense Timer App — Version: 0.57 (Elite Ratios Added)</p>
             </div>
 
             <div id="page-data" class="page-view">
@@ -1598,11 +1604,12 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks:{color: '#888'} }, y: { ticks:{color: '#888'}, beginAtZero: true } } }
             });
 
-            // Chart 3: NEW Splits Stacked Bar
+            // Chart 3: NEW Splits Stacked Bar & Elite Ratio Analyzer
             let ctxSplits = document.getElementById('splitsChart');
             if (ctxSplits) {
                 let splitSolves = fSolves.filter(s => s.mode === 'splits' && s.splits && s.splits.length === 3 && s.penalty !== 'DNF');
                 let splitsContainer = document.getElementById('splitsChartContainer');
+                let ratioContainer = document.getElementById('eliteRatioContainer');
 
                 if (window.splitsChartInstance) window.splitsChartInstance.destroy();
 
@@ -1631,7 +1638,66 @@
                             scales: { x: { stacked: true, ticks:{color:'#888'} }, y: { stacked: true, ticks:{color:'#888'} } }
                         }
                     });
-                } else { splitsContainer.style.display = 'none'; }
+
+                    // --- NEW: Elite Ratio Analysis Engine ---
+                    let totalCross = 0, totalF2L = 0, totalOLL = 0, totalPLL = 0, totalTime = 0;
+
+                    // Sum up all split times to get the average session ratios
+                    splitSolves.forEach(s => {
+                        let c = s.splits[0];
+                        let f = s.splits[1] - s.splits[0];
+                        let o = s.splits[2] - s.splits[1];
+                        let p = (s.penalty === '+2' ? s.timeMs + appSettings.plusPenalty : s.timeMs) - s.splits[2];
+                        
+                        totalCross += c; totalF2L += f; totalOLL += o; totalPLL += p;
+                        totalTime += (c + f + o + p);
+                    });
+
+                    // Calculate User Percentages
+                    let pCross = (totalCross / totalTime) * 100;
+                    let pF2L = (totalF2L / totalTime) * 100;
+                    let pOLL = (totalOLL / totalTime) * 100;
+                    let pPLL = (totalPLL / totalTime) * 100;
+
+                    // Map against Elite Ideals
+                    let diffs = [
+                        { name: 'Cross', actual: pCross, ideal: 12.0 },
+                        { name: 'F2L', actual: pF2L, ideal: 50.0 },
+                        { name: 'OLL', actual: pOLL, ideal: 16.5 },
+                        { name: 'PLL', actual: pPLL, ideal: 21.5 }
+                    ];
+
+                    // Calculate the "Diff" (Positive number means they spent MORE time than they should have)
+                    diffs.forEach(d => d.diff = d.actual - d.ideal);
+
+                    // Find the worst offender (the highest positive difference)
+                    let worstPhase = diffs.reduce((max, curr) => curr.diff > max.diff ? curr : max, diffs[0]);
+
+                    // Render UI
+                    let rGrid = document.getElementById('ratioGrid');
+                    rGrid.innerHTML = '';
+                    diffs.forEach(d => {
+                        let isWorst = d.name === worstPhase.name;
+                        let bg = isWorst ? 'rgba(244, 67, 54, 0.15)' : 'var(--ui-dark-bg)';
+                        let border = isWorst ? '1px solid #f44336' : '1px solid var(--ui-border)';
+                        let titleColor = isWorst ? '#f44336' : 'var(--text-muted)';
+                        
+                        rGrid.innerHTML += `
+                            <div style="flex: 1; background: ${bg}; border: ${border}; padding: 12px 5px; border-radius: 6px; text-align: center; min-width: 80px;">
+                                <div style="font-size: 0.85rem; color: ${titleColor}; font-weight: bold; text-transform: uppercase;">${d.name}</div>
+                                <div style="font-size: 1.4rem; font-weight: bold; color: var(--text-color); margin: 5px 0;">${d.actual.toFixed(1)}%</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Ideal: ${d.ideal}%</div>
+                            </div>
+                        `;
+                    });
+
+                    document.getElementById('ratioAdvice').innerHTML = `💡 <strong>Coach Analysis:</strong> You are losing the most time in your <strong style="color: #ff5252; text-decoration: underline;">${worstPhase.name}</strong> phase. It takes up ${worstPhase.actual.toFixed(1)}% of your solve time, but elite solvers aim for ${worstPhase.ideal}%. Focus your practice and drills on ${worstPhase.name} to drop your times fastest!`;
+                    ratioContainer.style.display = 'block';
+
+                } else { 
+                    splitsContainer.style.display = 'none'; 
+                    if (ratioContainer) ratioContainer.style.display = 'none';
+                }
             }
 
 
